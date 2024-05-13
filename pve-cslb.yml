@@ -1,0 +1,19 @@
+---
+## Any Proxmox node in the cluster with sufficient resources
+proxmox_host: some.proxmox.node
+## Port to connect to (default 8006)
+#proxmox_port: 8006
+## Credentials for pam user with node and workload read and migrate permissions
+proxmox_user: root@pam
+proxmox_pass: password
+
+# List of specific Proxmox hosts to ignore
+exclude_nodes: []
+# List of vmids to ignore
+exclude_vmids: []
+# List of workload types to ignore ("lxc" or "qemu")
+exclude_types: []
+
+# These must add up to 1.0
+p_cpu: 0.4
+p_mem: 0.6
