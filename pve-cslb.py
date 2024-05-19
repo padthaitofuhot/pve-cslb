@@ -149,7 +149,7 @@ def main():
     if not args.dry_run:
         logger.info("Not a dry run, performing migrations...")
         for migration_candidate in migration_candidates:
-            jobspec = my_simple_cslb.do_migration(migration_candidate)
+            success, jobspec = my_simple_cslb.do_migration(migration_candidate)
     else:
         logger.info("Dry run; no actions taken.")
 

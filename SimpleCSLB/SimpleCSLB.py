@@ -262,26 +262,30 @@ class LoadBalancer:
 
         return migration_proposals
 
-    def do_migration(self, spec: MigrationSpec) -> str:
+    def do_migration(self, spec: MigrationSpec) -> (bool, str):
         logger.info(
             f"Migrating workload '{spec.name}' ({spec.kind} VMID {spec.vmid}) from node {spec.source} to node {spec.destination}..."
         )
 
-        match spec.kind:
-            case "lxc":
-                job = (
-                    self.pve.nodes(spec.source)
-                    .lxc(spec.vmid)
-                    .migrate.post(target=spec.destination, online=1)
-                )
-            case "qemu":
-                job = (
-                    self.pve.nodes(spec.source)
-                    .qemu(spec.vmid)
-                    .migrate.post(target=spec.destination, online=1)
-                )
-            case _:
-                raise TypeError(f"Unknown workload type: {spec.kind}")
+        try:
+            match spec.kind:
+                case "lxc":
+                    job = (
+                        self.pve.nodes(spec.source)
+                        .lxc(spec.vmid)
+                        .migrate.post(target=spec.destination, online=1)
+                    )
+                case "qemu":
+                    job = (
+                        self.pve.nodes(spec.source)
+                        .qemu(spec.vmid)
+                        .migrate.post(target=spec.destination, online=1)
+                    )
+                case _:
+                    raise TypeError(f"Unknown workload type: {spec.kind}")
+        except ResourceException:
+            logger.error(f"Migration failed, {spec.kind} is locked")
+            return False, None
 
         logger.debug(f"Migration jobspec: {job}")
-        return job
+        return True, job
