@@ -91,11 +91,13 @@ def main():
     parser.add_argument(
         "--p-cpu",
         metavar="%",
+        type=float,
         help="Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default 0.2)",
     )
     parser.add_argument(
         "--p-mem",
         metavar="%",
+        type=float,
         help="Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default 0.8)",
     )
     parser.add_argument(
