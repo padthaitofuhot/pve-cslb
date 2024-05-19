@@ -17,7 +17,7 @@ from math import sqrt
 from statistics import mean
 
 from loguru import logger
-from proxmoxer import ProxmoxAPI
+from proxmoxer import ProxmoxAPI, ResourceException
 from yaml import safe_load
 
 
@@ -42,13 +42,19 @@ class Config:
     proxmox_port = None
 
     def __init__(self, args: dict):
+        # Defaults are managed by argparse in caller
         if args:
             # First read from config file
+            self.args = args
+            logger.debug("Reading config...")
             if args["config_file"]:
-                with open(args["config_file"], "r") as stream:
-                    config = safe_load(stream)
-                    for k, v in config.items():
-                        setattr(self, k, v)
+                try:
+                    with open(args["config_file"], "r") as stream:
+                        config = safe_load(stream)
+                        for k, v in config.items():
+                            setattr(self, k, v)
+                except FileNotFoundError:
+                    raise ConfigurationError("Config file not found")
             # Then override with CLI args
             for k, v in args.items():
                 if v is not None:
@@ -99,9 +105,8 @@ class LoadBalancer:
     conf = None
     proxmox = None
 
-    def __init__(self, args: dict) -> None:
-        logger.debug("Reading config...")
-        self.conf = Config(args)
+    def __init__(self, conf: Config) -> None:
+        self.conf = conf
         logger.debug("Connecting to Proxmox API...")
         self.pve = ProxmoxAPI(
             host=self.conf.proxmox_host,

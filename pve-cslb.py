@@ -20,7 +20,7 @@ from sys import exit
 
 from loguru import logger
 
-from SimpleCSLB import LoadBalancer
+from SimpleCSLB import Config, LoadBalancer, ConfigurationError
 
 TITLE = "pve-cslb"
 
@@ -101,7 +101,19 @@ def main():
         help="Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified multiple times)",
     )
     args = parser.parse_args()
-    my_simple_cslb = LoadBalancer(vars(args))
+    try:
+        lb_config = Config(vars(args))
+    except ConfigurationError as e:
+        logger.error(f"Configuration error: {e}")
+        exit(1)
+    for k, v in lb_config.__dict__().items():
+        match k:
+            case "proxmox_pass":
+                v_out = "********"
+            case _:
+                v_out = v
+        logger.debug(f"{k}: {v_out}")
+    my_simple_cslb = LoadBalancer(lb_config)
     migration_candidates = my_simple_cslb.get_migration_candidates()
     if len(migration_candidates) < 1:
         logger.info("No migration candidates found.")
