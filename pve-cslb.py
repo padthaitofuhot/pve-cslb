@@ -103,6 +103,9 @@ def main():
     args = parser.parse_args()
     my_simple_cslb = LoadBalancer(vars(args))
     migration_candidates = my_simple_cslb.get_migration_candidates()
+    if len(migration_candidates) < 1:
+        logger.info("No migration candidates found.")
+        exit(0)
     if not args.dry_run:
         logger.info("Not a dry run, performing migrations...")
         for migration_candidate in migration_candidates:
