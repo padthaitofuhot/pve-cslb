@@ -34,8 +34,8 @@ class Config:
     exclude_nodes = []
     exclude_vmids = []
     exclude_types = []
-    p_cpu = 0.2
-    p_mem = 0.8
+    p_cpu = 0.5
+    p_mem = 0.5
     proxmox_user = None
     proxmox_pass = None
     proxmox_host = None
@@ -80,9 +80,53 @@ class Config:
                         case _:
                             setattr(self, k, v)
         else:
-            raise ConfigurationError(
-                "Missing required configuration.  Try using --help."
-            )
+            raise ConfigurationError("Cannot continue, not fully configured.")
+
+        # Resolve proportions so they always sum to 1
+        if self.p_cpu + self.p_mem > 1:
+
+            if self.p_cpu > self.p_mem:
+                if self.p_cpu > 1:
+                    self.p_cpu = 1
+                self.p_mem = 1 - self.p_cpu
+
+            if self.p_cpu < self.p_mem:
+                if self.p_mem > 1:
+                    self.p_mem = 1
+                self.p_cpu = 1 - self.p_mem
+
+            if self.p_cpu == self.p_mem:
+                self.p_cpu = 0.5
+                self.p_mem = 0.5
+
+        if self.p_cpu + self.p_mem < 1:
+
+            if self.p_cpu > self.p_mem:
+                self.p_cpu = 1 - self.p_mem
+
+            if self.p_mem > self.p_cpu:
+                self.p_mem = 1 - self.p_cpu
+
+            if self.p_cpu == self.p_mem:
+                self.p_cpu = 0.5
+                self.p_mem = 0.5
+
+    def __dict__(self) -> dict:
+        return {
+            "args": self.args,
+            "config_file": self.config_file,
+            "dry_run": self.dry_run,
+            "verbose": self.verbose,
+            "exclude_nodes": self.exclude_nodes,
+            "exclude_vmids": self.exclude_vmids,
+            "exclude_types": self.exclude_types,
+            "p_cpu": self.p_cpu,
+            "p_mem": self.p_mem,
+            "proxmox_user": self.proxmox_user,
+            "proxmox_pass": self.proxmox_pass,
+            "proxmox_host": self.proxmox_host,
+            "proxmox_port": self.proxmox_port,
+        }
 
 
 class MigrationSpec:
