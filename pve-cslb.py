@@ -23,16 +23,16 @@ from loguru import logger
 from SimpleCSLB import Config, LoadBalancer, ConfigurationError
 
 TITLE = "pve-cslb"
-
 COPYRIGHT = """
 Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 """
-
 VERSION = "0.1.0-alpha"
-
 DESCRIPTION = """
 A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
 """
+
+# Defaults
+DEFAULT_CONFIG_FILE = "/etc/pve-cslb.conf"
 
 
 def main():
@@ -41,18 +41,46 @@ def main():
         description=f"{TITLE} {VERSION} - {DESCRIPTION}",
         epilog=COPYRIGHT,
     )
-    parser.add_argument("-c", "--config-file", metavar="FILE", default="pve-cslb.yml")
-    # parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "-c",
+        "--config-file",
+        metavar="FILE",
+        default=DEFAULT_CONFIG_FILE,
+        help=f"YAML configuration file (Default: {DEFAULT_CONFIG_FILE})",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Increase verbosity",
+    )
     parser.add_argument(
         "-d",
         "--dry-run",
         action="store_true",
         help="Perform read-only analysis; no write actions.",
     )
-    parser.add_argument("--proxmox-host", metavar="HOST")
-    parser.add_argument("--proxmox-port", metavar="PORT")
-    parser.add_argument("--proxmox-user", metavar="USER")
-    parser.add_argument("--proxmox-pass", metavar="PASS")
+    parser.add_argument(
+        "--proxmox-host",
+        metavar="HOST",
+        help="Proxmox host",
+    )
+    parser.add_argument(
+        "--proxmox-port",
+        metavar="PORT",
+        help="Proxmox port",
+    )
+    parser.add_argument(
+        "--proxmox-user",
+        metavar="USER",
+        help="Proxmox user",
+    )
+    parser.add_argument(
+        "--proxmox-pass",
+        metavar="PASS",
+        help="Proxmox password",
+    )
     parser.add_argument(
         "-m",
         "--max-migrations",
