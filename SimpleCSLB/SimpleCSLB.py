@@ -12,8 +12,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from math import sqrt
 from statistics import mean
 
 from loguru import logger
@@ -159,100 +157,156 @@ class LoadBalancer:
             password=self.conf.proxmox_pass,
         )
 
+    def get_node_state(self, node_name: str, node_status: dict) -> (int, int, float):
+        cpu_mhz = float(node_status["cpuinfo"]["mhz"])
+        cpu_cores = float(node_status["cpuinfo"]["cores"])
+        cpu_load = mean(list(map(float, node_status["loadavg"])))
+        cpu_total = cpu_mhz * cpu_cores
+        cpu_used = cpu_mhz * cpu_load
+        cpu_free = cpu_total - cpu_used
+        # logger.debug(
+        #     f"{node_name}: cpu_mhz: {cpu_mhz}, cores: {cpu_cores}, load: {cpu_load}"
+        # )
+
+        w_cpu = self.conf.p_cpu * (cpu_total / cpu_free) * 100
+        # logger.debug(
+        #     f"{node_name}: cpu_total: {cpu_total}, cpu_free: {cpu_free}, w_cpu {w_cpu}"
+        # )
+
+        mem_total = int(node_status["memory"]["total"])
+        mem_used = int(node_status["memory"]["used"])
+        mem_free = int(node_status["memory"]["free"])
+        mem_ksm = int(node_status["ksm"]["shared"])
+        mem_free_no_ksm = mem_total - (mem_used + mem_ksm)
+        # logger.debug(
+        #     f"{node_name}: mem_free: {mem_free}, mem_ksm: {mem_ksm}, mem_total: {mem_total}"
+        # )
+
+        w_mem = self.conf.p_mem * (mem_total / mem_free_no_ksm) * 100
+        # logger.debug(
+        #     f"{node_name}: mem_total: {mem_total}, mem_free_no_ksm: {mem_free_no_ksm}, w_mem {w_mem}"
+        # )
+        weight = round(w_cpu + w_mem)
+
+        logger.info(f"{node_name}: weight: {weight}")
+        return weight, mem_free, cpu_free
+
+    def get_node_workloads(self, node: dict) -> dict:
+        workloads = {}
+
+        if "qemu" not in self.conf.exclude_types:
+            for workload in self.pve.nodes(node["node"]).qemu.get():
+                vmid = str(workload["vmid"])
+                if vmid in self.conf.exclude_vmids:
+                    logger.info(f"Ignoring VMID {vmid} per configuration")
+                    continue
+                if workload["status"] != "running":
+                    continue
+                workload.update({"kind": "qemu"})
+                del workload["vmid"]
+                workloads.update({vmid: workload})
+
+        if "lxc" not in self.conf.exclude_types:
+            for workload in self.pve.nodes(node["node"]).lxc.get():
+                vmid = str(workload["vmid"])
+                if vmid in self.conf.exclude_vmids:
+                    logger.info(f"Ignoring VMID {vmid} per configuration")
+                    continue
+                if workload["status"] != "running":
+                    continue
+                workload.update({"kind": "lxc"})
+                del workload["vmid"]
+                workloads.update({vmid: workload})
+
+        return workloads
+
+    def get_workload_state(
+        self, node_name: str, node_status: dict, vmid: int, workload: dict
+    ) -> (int, int, float):
+        workload_name = workload["name"]
+        workload_kind = workload["kind"]
+
+        cpu_cores = float(workload["cpus"])
+        cpu_load = float(workload["cpu"])
+        cpu_mhz = float(node_status["cpuinfo"]["mhz"])
+        cpu_used = cpu_mhz * cpu_load
+        cpu_max = cpu_mhz * cpu_cores
+        # This prevents division by zero
+        if cpu_used <= 0.001:
+            cpu_used = 0.001
+        w_cpu = self.conf.p_cpu * (cpu_used / cpu_max) * 100
+        # logger.debug(
+        #     f"cpu_load: {cpu_load}, cpu_used: {cpu_used}, cpu_max: {cpu_max}, w_cpu: {w_cpu}"
+        # )
+
+        mem_max = float(workload["maxmem"])
+        mem_used = float(workload["mem"])
+        w_mem = self.conf.p_mem * (mem_used / mem_max) * 100
+        # logger.debug(f"mem_max: {mem_max}, mem_used: {mem_used}, w_mem: {w_mem}")
+
+        weight = round(w_cpu + w_mem)
+
+        logger.debug(
+            f"{node_name} {workload_kind}/{vmid} '{workload_name}': weight: {weight}, mem_used: {mem_used}, cpu_used: {cpu_used}"
+        )
+
+        return weight, mem_used, cpu_used
+
     def get_migration_candidates(self) -> list:
         logger.info("Looking for migration candidates...")
-
-        for kind in self.conf.exclude_types:
-            logger.info(f"Ignoring workloads of type {kind} per configuration")
 
         node_states = {}
 
         for node in self.pve.nodes.get():
-            if node["node"] in self.conf.exclude_nodes:
+            node_name = node["node"]
+            if node_name in self.conf.exclude_nodes:
                 logger.info(f"Ignoring node {node['node']} per configuration")
                 continue
 
-            node_status = self.pve.nodes(node["node"]).status.get()
+            node_status = self.pve.nodes(node_name).status.get()
+            weight, mem_free, cpu_free = self.get_node_state(node_name, node_status)
 
-            w_cpu = (
-                self.conf.p_cpu
-                * float(node_status["cpuinfo"]["mhz"])
-                * node_status["cpuinfo"]["sockets"]
-                * node_status["cpuinfo"]["cores"]
-                * float(node_status["loadavg"][1])
-            )
-
-            w_mem = (
-                self.conf.p_mem
-                * (node_status["memory"]["used"] + node_status["ksm"]["shared"])
-                * node_status["memory"]["total"]
-            )
-
-            weight = sqrt(w_cpu + w_mem)
-
-            node_states[node["node"]] = {
+            node_states[node_name] = {
                 "weight": weight,
-                "memfree": node_status["memory"]["free"],
+                "mem_free": mem_free,
+                "cpu_free": cpu_free,
             }
 
-            workloads = {}
-
-            if "qemu" not in self.conf.exclude_types:
-                for workload in self.pve.nodes(node["node"]).qemu.get():
-                    if workload["status"] != "running":
-                        continue
-                    if workload["vmid"] in self.conf.exclude_vmids:
-                        logger.debug(
-                            f"Ignoring workload VMID {workload['vmid']} per configuration"
-                        )
-                        continue
-
-                    workload.update({"kind": "qemu"})
-                    vmid = workload["vmid"]
-                    del workload["vmid"]
-                    workloads.update({vmid: workload})
-
-            if "lxc" not in self.conf.exclude_types:
-                for workload in self.pve.nodes(node["node"]).lxc.get():
-                    if workload["status"] != "running":
-                        continue
-                    if workload["vmid"] in self.conf.exclude_vmids:
-                        logger.debug(
-                            f"Ignoring workload VMID {workload['vmid']} per configuration"
-                        )
-                        continue
-                    workload.update({"kind": "lxc"})
-                    vmid = workload["vmid"]
-                    del workload["vmid"]
-                    workloads.update({vmid: workload})
-
+            workloads = self.get_node_workloads(node)
             for vmid, workload in workloads.items():
-                w_cpu = self.conf.p_cpu * workload["cpus"] * float(workload["cpu"])
-                w_mem = self.conf.p_mem * workload["mem"] * workload["maxmem"]
-                workloads[vmid].update({"weight": sqrt(w_cpu + w_mem)})
+                weight, mem_used, cpu_max = self.get_workload_state(
+                    node_name, node_status, vmid, workload
+                )
+                workloads[vmid].update(
+                    {
+                        "weight": weight,
+                        "mem_used": mem_used,
+                        "cpu_max": cpu_max,
+                    }
+                )
 
-            node_states[node["node"]].update(
-                {"workload_count": len(workloads), "workloads": workloads}
+            node_states[node_name].update(
+                {
+                    "workload_count": len(workloads),
+                    "workloads": workloads,
+                }
             )
 
-        weights = [n["weight"] for n in node_states.values()]
-        w_mean = mean(weights)
-
-        loads = [n["workload_count"] for n in node_states.values()]
-        l_mean = mean(loads)
+        w_mean = mean([n["weight"] for n in node_states.values()])
+        l_mean = mean([n["workload_count"] for n in node_states.values()])
 
         candidates = {"source": {}, "destination": {}}
         source_count = 0
         destination_count = 0
 
         for node, state in node_states.items():
-            if state["weight"] < w_mean * 0.9:
+            if state["weight"] < w_mean:  # * 0.9:
                 candidates["destination"].update({node: state})
                 destination_count += 1
                 logger.debug(
                     f"Found destination candidate: {node} (weight: {state['weight']}, workload_count: {state['workload_count']})"
                 )
-            if state["weight"] > w_mean * 1.1 and state["workload_count"] > l_mean:
+            if state["weight"] > w_mean and state["workload_count"] > l_mean:  # * 1.1
                 candidates["source"].update({node: state})
                 source_count += 1
                 logger.debug(
@@ -280,7 +334,13 @@ class LoadBalancer:
                 key=lambda x: x[1]["weight"],
                 reverse=False,
             ):
-                if node_states[destination_name]["memfree"] > workload["maxmem"]:
+                # logger.debug(
+                #     f"{node_states[destination_name]['mem_free']}, {node_states[destination_name]['cpu_free']} >? {workload['mem_used']}, {workload['cpu_max']}"
+                # )
+                if (
+                    node_states[destination_name]["mem_free"] > workload["mem_used"]
+                    and node_states[destination_name]["cpu_free"] > workload["cpu_max"]
+                ):
                     del candidates["destination"][destination_name]
                     destination_count -= 1
                     logger.info(
@@ -298,7 +358,7 @@ class LoadBalancer:
                     break
                 else:
                     logger.info(
-                        f"Could not find a destination node with enough free memory for workload '{workload['name']}' ({workload['kind']} VMID {vmid}) on node {source_name}"
+                        f"Could not find a destination node with enough free resources for workload '{workload['name']}' ({workload['kind']} VMID {vmid}) on node {source_name}"
                     )
 
         if len(migration_proposals) < 1:

@@ -136,13 +136,13 @@ def main():
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
         exit(1)
-    for k, v in lb_config.__dict__().items():
-        match k:
-            case "proxmox_pass":
-                v_out = "********"
-            case _:
-                v_out = v
-        logger.debug(f"{k}: {v_out}")
+    # for k, v in lb_config.__dict__().items():
+    #     match k:
+    #         case "proxmox_pass":
+    #             v_out = "********"
+    #         case _:
+    #             v_out = v
+    #     logger.debug(f"{k}: {v_out}")
     my_simple_cslb = LoadBalancer(lb_config)
     migration_candidates = my_simple_cslb.get_migration_candidates()
     if len(migration_candidates) < 1:

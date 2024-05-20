@@ -15,5 +15,5 @@ exclude_vmids: []
 exclude_types: []
 
 # These must add up to 1.0
-p_cpu: 0.4
-p_mem: 0.6
+p_cpu: 0.5
+p_mem: 0.5
