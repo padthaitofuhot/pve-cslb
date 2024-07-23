@@ -198,25 +198,29 @@ class LoadBalancer:
             for workload in self.pve.nodes(node["node"]).qemu.get():
                 vmid = str(workload["vmid"])
                 if vmid in self.conf.exclude_vmids:
-                    logger.info(f"Ignoring VMID {vmid} per configuration")
+                    logger.debug(f"Ignoring VMID {vmid} per configuration")
                     continue
                 if workload["status"] != "running":
                     continue
                 workload.update({"kind": "qemu"})
                 del workload["vmid"]
                 workloads.update({vmid: workload})
+        else:
+            logger.debug(f"Ignoring QEMU workloads per configuration.")
 
         if "lxc" not in self.conf.exclude_types:
             for workload in self.pve.nodes(node["node"]).lxc.get():
                 vmid = str(workload["vmid"])
                 if vmid in self.conf.exclude_vmids:
-                    logger.info(f"Ignoring VMID {vmid} per configuration")
+                    logger.debug(f"Ignoring VMID {vmid} per configuration")
                     continue
                 if workload["status"] != "running":
                     continue
                 workload.update({"kind": "lxc"})
                 del workload["vmid"]
                 workloads.update({vmid: workload})
+        else:
+            logger.debug(f"Ignoring LXC workloads per configuration.")
 
         return workloads
 
@@ -260,7 +264,7 @@ class LoadBalancer:
         for node in self.pve.nodes.get():
             node_name = node["node"]
             if node_name in self.conf.exclude_nodes:
-                logger.info(f"Ignoring node {node['node']} per configuration")
+                logger.debug(f"Ignoring node {node['node']} per configuration")
                 continue
 
             node_status = self.pve.nodes(node_name).status.get()
