@@ -2,9 +2,9 @@
 ## Any Proxmox node in the cluster with sufficient resources
 proxmox_host: some.proxmox.node
 ## Port to connect to (default 8006)
-proxmox_port: 8006
-## Credentials for pam user with node and workload read and migrate permissions
-proxmox_user: root@pam
+#proxmox_port: 8006
+## Credentials for pam user with node and workload read and migrate permissions (default root@pam)
+#proxmox_user: root@pam
 proxmox_pass: password
 
 # List of specific Proxmox hosts to ignore
