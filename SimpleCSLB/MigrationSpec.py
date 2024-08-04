@@ -12,3 +12,18 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+class MigrationSpec:
+    source: str
+    destination: str
+    name: str
+    vmid: int
+    kind: str
+
+    def __init__(self, source: str, destination: str, name: str, vmid: int, kind: str):
+        self.source = source
+        self.destination = destination
+        self.name = name
+        self.vmid = vmid
+        self.kind = kind

@@ -16,11 +16,12 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
-from sys import exit
+from sys import exit, stdout
 
 from loguru import logger
 
-from SimpleCSLB import Config, LoadBalancer, ConfigurationError
+from SimpleCSLB.Config import Config, ConfigurationError
+from SimpleCSLB.WorkloadBalancer import WorkloadBalancer
 
 TITLE = "pve-cslb"
 COPYRIGHT = """
@@ -30,9 +31,6 @@ VERSION = "0.1.0-alpha"
 DESCRIPTION = """
 A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
 """
-
-# Defaults
-DEFAULT_CONFIG_FILE = "/etc/pve-cslb.conf"
 
 
 def main():
@@ -45,21 +43,29 @@ def main():
         "-c",
         "--config-file",
         metavar="FILE",
-        default=DEFAULT_CONFIG_FILE,
-        help=f"YAML configuration file (Default: {DEFAULT_CONFIG_FILE})",
+        default=None,
+        help=f"YAML configuration file (default: %(default)s)",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
         default=False,
-        help="Increase verbosity",
+        help="Increase verbosity (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="Only output errors (default: %(default)s)",
     )
     parser.add_argument(
         "-d",
         "--dry-run",
         action="store_true",
-        help="Perform read-only analysis; no write actions.",
+        default=False,
+        help="Perform read-only analysis; no write actions. (default: %(default)s)",
     )
     parser.add_argument(
         "--proxmox-host",
@@ -69,12 +75,15 @@ def main():
     parser.add_argument(
         "--proxmox-port",
         metavar="PORT",
-        help="Proxmox port",
+        type=int,
+        default=8006,
+        help="Proxmox port (default: %(default)s)",
     )
     parser.add_argument(
         "--proxmox-user",
         metavar="USER",
-        help="Proxmox user",
+        default="root@pam",
+        help="Proxmox user (default: %(default)s)",
     )
     parser.add_argument(
         "--proxmox-pass",
@@ -86,19 +95,22 @@ def main():
         "--max-migrations",
         metavar="NUM",
         type=int,
-        help="Max number of simultaneous migrations to spawn",
+        default=5,
+        help="Max simultaneous migrations to start (default: %(default)s)",
     )
     parser.add_argument(
-        "--p-cpu",
+        "--percent-cpu",
         metavar="%",
         type=float,
-        help="Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default 0.2)",
+        default=0.3,
+        help="Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default: %(default)s)",
     )
     parser.add_argument(
-        "--p-mem",
+        "--percent-mem",
         metavar="%",
         type=float,
-        help="Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default 0.8)",
+        default=0.7,
+        help="Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default: %(default)s)",
     )
     parser.add_argument(
         "--exclude-node",
@@ -113,7 +125,7 @@ def main():
     parser.add_argument(
         "--exclude-type",
         action="append",
-        help="Exclude a workload type (must be 'lxc' or 'qemu'; can be specified multiple times)",
+        help="Exclude a workload type ('lxc' or 'qemu'; can be specified multiple times)",
     )
     parser.add_argument(
         "--include-node",
@@ -131,29 +143,42 @@ def main():
         help="Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified multiple times)",
     )
     args = parser.parse_args()
+
+    log_level = "INFO"
+    if args.verbose:
+        log_level = "DEBUG"
+    if args.quiet:
+        log_level = "ERROR"
+    config = {
+        "handlers": [
+            {
+                "sink": stdout,
+                "colorize": True,
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>",
+                "level": log_level,
+            }
+        ],
+    }
+    logger.configure(**config)
+    logger.enable("WorkloadBalancer")
+    logger.enable("Config")
+
     try:
         lb_config = Config(vars(args))
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
         exit(1)
-    # for k, v in lb_config.__dict__().items():
-    #     match k:
-    #         case "proxmox_pass":
-    #             v_out = "********"
-    #         case _:
-    #             v_out = v
-    #     logger.debug(f"{k}: {v_out}")
-    my_simple_cslb = LoadBalancer(lb_config)
+
+    my_simple_cslb = WorkloadBalancer(lb_config)
     migration_candidates = my_simple_cslb.get_migration_candidates()
     if len(migration_candidates) < 1:
         logger.info("No migration candidates found.")
         exit(0)
     if not args.dry_run:
-        logger.info("Not a dry run, performing migrations...")
         for migration_candidate in migration_candidates:
             success, jobspec = my_simple_cslb.do_migration(migration_candidate)
     else:
-        logger.info("Dry run; no actions taken.")
+        logger.info("Dry run; no migrations started.")
 
 
 if __name__ == "__main__":
