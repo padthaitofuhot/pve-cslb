@@ -27,7 +27,7 @@ TITLE = "pve-cslb"
 COPYRIGHT = """
 Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 """
-VERSION = "0.1.0-alpha"
+VERSION = "1.1.0"
 DESCRIPTION = """
 A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
 """
@@ -68,49 +68,47 @@ def main():
         help="Perform read-only analysis; no write actions. (default: %(default)s)",
     )
     parser.add_argument(
-        "--proxmox-host",
-        metavar="HOST",
-        help="Proxmox host",
+        "--proxmox-node",
+        metavar="NODE",
+        type=str,
+        help="Proxmox node (default: localhost)",
     )
     parser.add_argument(
         "--proxmox-port",
         metavar="PORT",
         type=int,
-        default=8006,
-        help="Proxmox port (default: %(default)s)",
+        help="Proxmox port (default: 8006)",
     )
     parser.add_argument(
         "--proxmox-user",
         metavar="USER",
-        default="root@pam",
-        help="Proxmox user (default: %(default)s)",
+        type=str,
+        help="Proxmox user (default: root@pam)",
     )
     parser.add_argument(
         "--proxmox-pass",
         metavar="PASS",
-        help="Proxmox password",
+        type=str,
+        help="Proxmox password (no default)",
     )
     parser.add_argument(
         "-m",
         "--max-migrations",
         metavar="NUM",
         type=int,
-        default=5,
-        help="Max simultaneous migrations to start (default: %(default)s)",
+        help="Max simultaneous migrations to start (default: 5)",
     )
     parser.add_argument(
         "--percent-cpu",
         metavar="%",
         type=float,
-        default=0.3,
-        help="Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default: %(default)s)",
+        help="Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default: 0.4)",
     )
     parser.add_argument(
         "--percent-mem",
         metavar="%",
         type=float,
-        default=0.7,
-        help="Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default: %(default)s)",
+        help="Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default: 0.6)",
     )
     parser.add_argument(
         "--exclude-node",
@@ -142,12 +140,12 @@ def main():
         action="append",
         help="Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified multiple times)",
     )
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     log_level = "INFO"
-    if args.verbose:
+    if args["verbose"]:
         log_level = "DEBUG"
-    if args.quiet:
+    if args["quiet"]:
         log_level = "ERROR"
     config = {
         "handlers": [
@@ -164,17 +162,19 @@ def main():
     logger.enable("Config")
 
     try:
-        lb_config = Config(vars(args))
+        lb_config = Config(args)
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
         exit(1)
 
     my_simple_cslb = WorkloadBalancer(lb_config)
     migration_candidates = my_simple_cslb.get_migration_candidates()
+
     if len(migration_candidates) < 1:
         logger.info("No migration candidates found.")
         exit(0)
-    if not args.dry_run:
+
+    if not lb_config.dry_run:
         for migration_candidate in migration_candidates:
             success, jobspec = my_simple_cslb.do_migration(migration_candidate)
     else:

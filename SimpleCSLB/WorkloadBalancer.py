@@ -16,6 +16,7 @@ from statistics import mean
 
 from loguru import logger
 from proxmoxer import ProxmoxAPI, ResourceException
+from requests.exceptions import ConnectionError
 
 from .Config import Config
 from .MigrationSpec import MigrationSpec
@@ -31,14 +32,18 @@ class WorkloadBalancer:
     def __init__(self, conf: Config) -> None:
         self.conf = conf
         logger.info(
-            f"Connecting to Proxmox API {self.conf.proxmox_host}:{self.conf.proxmox_port}..."
+            f"Connecting to Proxmox API {self.conf.proxmox_node}:{self.conf.proxmox_port}..."
         )
-        self.pve = ProxmoxAPI(
-            host=self.conf.proxmox_host,
-            port=self.conf.proxmox_port,
-            user=self.conf.proxmox_user,
-            password=self.conf.proxmox_pass,
-        )
+        try:
+            self.pve = ProxmoxAPI(
+                host=self.conf.proxmox_node,
+                port=self.conf.proxmox_port,
+                user=self.conf.proxmox_user,
+                password=self.conf.proxmox_pass,
+            )
+        except (ResourceException, ConnectionError) as e:
+            logger.error(e)
+            exit(1)
 
     def get_node_state(self, node_name: str, node_status: dict) -> (int, int, float):
         cpu_mhz = float(node_status["cpuinfo"]["mhz"])
@@ -51,7 +56,7 @@ class WorkloadBalancer:
             f"Node {node_name}: cpu_mhz: {cpu_mhz}, cores: {cpu_cores}, load: {round(cpu_load, 2)}"
         )
 
-        w_cpu = self.conf.p_cpu * (cpu_total / cpu_free) * 100
+        w_cpu = self.conf.percent_cpu * (cpu_total / cpu_free) * 100
         logger.debug(
             f"Node {node_name}: cpu_total: {round(cpu_total, 2)}, cpu_free: {round(cpu_free, 2)}, w_cpu {round(w_cpu, 2)}"
         )
@@ -65,7 +70,7 @@ class WorkloadBalancer:
             f"Node {node_name}: mem_free: {mem_free}, mem_ksm: {mem_ksm}, mem_total: {mem_total}"
         )
 
-        w_mem = self.conf.p_mem * (mem_total / mem_free_no_ksm) * 100
+        w_mem = self.conf.percent_mem * (mem_total / mem_free_no_ksm) * 100
         logger.debug(
             f"Node {node_name}: mem_total: {mem_total}, mem_free_no_ksm: {mem_free_no_ksm}, w_mem {round(w_mem, 2)}"
         )
@@ -78,7 +83,13 @@ class WorkloadBalancer:
         workloads = {}
 
         if "qemu" not in self.conf.exclude_types:
-            for workload in self.pve.nodes(node["node"]).qemu.get():
+            try:
+                workloads_from_node = self.pve.nodes(node["node"]).qemu.get()
+            except (ResourceException, ConnectionError) as e:
+                logger.error(e)
+                exit(1)
+
+            for workload in workloads_from_node:
                 vmid = str(workload["vmid"])
                 if vmid in self.conf.exclude_vmids:
                     logger.debug(f"Ignoring VMID {vmid} per configuration")
@@ -91,8 +102,16 @@ class WorkloadBalancer:
         else:
             logger.debug(f"Ignoring QEMU workloads per configuration")
 
+        del workloads_from_node
+
         if "lxc" not in self.conf.exclude_types:
-            for workload in self.pve.nodes(node["node"]).lxc.get():
+            try:
+                workloads_from_node = self.pve.nodes(node["node"]).lxc.get()
+            except (ResourceException, ConnectionError) as e:
+                logger.error(e)
+                exit(1)
+
+            for workload in workloads_from_node:
                 vmid = str(workload["vmid"])
                 if vmid in self.conf.exclude_vmids:
                     logger.debug(f"Ignoring VMID {vmid} per configuration")
@@ -104,6 +123,8 @@ class WorkloadBalancer:
                 workloads.update({vmid: workload})
         else:
             logger.debug(f"Ignoring LXC workloads per configuration")
+
+        del workloads_from_node
 
         return workloads
 
@@ -122,11 +143,11 @@ class WorkloadBalancer:
         # This prevents division by zero
         if cpu_used <= 0.001:
             cpu_used = 0.001
-        w_cpu = self.conf.p_cpu * (cpu_used / cpu_max) * 100
+        w_cpu = self.conf.percent_cpu * (cpu_used / cpu_max) * 100
 
         mem_max = float(workload["maxmem"])
         mem_used = float(workload["mem"])
-        w_mem = self.conf.p_mem * (mem_used / mem_max) * 100
+        w_mem = self.conf.percent_mem * (mem_used / mem_max) * 100
 
         weight = round(w_cpu + w_mem)
 
@@ -266,8 +287,11 @@ class WorkloadBalancer:
                     )
                 case _:
                     raise TypeError(f"Unknown workload type: {spec.kind}")
-        except ResourceException:
-            logger.error(f"Migration failed, {spec.kind} is locked")
+        except ResourceException as e:
+            logger.error(f"Migration failed, {spec.kind} is locked: {e}")
+            return False, None
+        except ConnectionError as e:
+            logger.error(f"Migration failed, connection error: {e}")
             return False, None
 
         logger.debug(f"Migration jobspec: {job}")
