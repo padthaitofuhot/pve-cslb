@@ -33,6 +33,7 @@ A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced lo
 """
 
 
+@logger.catch(level="ERROR")
 def main():
     parser = ArgumentParser(
         prog="pve-cslb",
@@ -43,29 +44,29 @@ def main():
         "-c",
         "--config-file",
         metavar="FILE",
-        default=None,
-        help=f"YAML configuration file (default: %(default)s)",
+        help=f"YAML configuration file (default: none)",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        default=False,
-        help="Increase verbosity (default: %(default)s)",
+        help="Increase verbosity (default: false)",
     )
     parser.add_argument(
         "-q",
         "--quiet",
         action="store_true",
-        default=False,
-        help="Only output errors (default: %(default)s)",
+        help="Only output errors (default: false)",
     )
     parser.add_argument(
-        "-d",
+        "--no-color",
+        action="store_true",
+        help="Disable ANSI color (default: false)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
-        default=False,
-        help="Perform read-only analysis; no write actions. (default: %(default)s)",
+        help="Perform read-only analysis; no write actions. (default: false)",
     )
     parser.add_argument(
         "--proxmox-node",
@@ -92,7 +93,6 @@ def main():
         help="Proxmox password (no default)",
     )
     parser.add_argument(
-        "-m",
         "--max-migrations",
         metavar="NUM",
         type=int,
@@ -154,6 +154,7 @@ def main():
                 "colorize": True,
                 "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>",
                 "level": log_level,
+                "enqueue": True,
             }
         ],
     }
@@ -171,14 +172,15 @@ def main():
     migration_candidates = my_simple_cslb.get_migration_candidates()
 
     if len(migration_candidates) < 1:
-        logger.info("No migration candidates found.")
+        logger.success("No migration candidates found.")
         exit(0)
 
     if not lb_config.dry_run:
         for migration_candidate in migration_candidates:
             success, jobspec = my_simple_cslb.do_migration(migration_candidate)
+        logger.success("Migration jobs submitted")
     else:
-        logger.info("Dry run; no migrations started.")
+        logger.success("Dry run; no migrations started.")
 
 
 if __name__ == "__main__":

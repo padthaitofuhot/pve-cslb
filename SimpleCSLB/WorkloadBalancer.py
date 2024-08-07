@@ -23,6 +23,12 @@ from .MigrationSpec import MigrationSpec
 
 logger.disable("WorkloadBalancer")
 
+MiB = 1048576
+
+
+def mib_round(x: int):
+    return round(x / MiB, 2)
+
 
 class WorkloadBalancer:
 
@@ -32,7 +38,7 @@ class WorkloadBalancer:
     def __init__(self, conf: Config) -> None:
         self.conf = conf
         logger.info(
-            f"Connecting to Proxmox API {self.conf.proxmox_node}:{self.conf.proxmox_port}..."
+            f"Using Proxmox API at {self.conf.proxmox_node}:{self.conf.proxmox_port}"
         )
         try:
             self.pve = ProxmoxAPI(
@@ -67,12 +73,12 @@ class WorkloadBalancer:
         mem_ksm = int(node_status["ksm"]["shared"])
         mem_free_no_ksm = mem_total - (mem_used + mem_ksm)
         logger.debug(
-            f"Node {node_name}: mem_free: {mem_free}, mem_ksm: {mem_ksm}, mem_total: {mem_total}"
+            f"Node {node_name}: mem_free: {mib_round(mem_free)} MiB, mem_ksm: {mib_round(mem_ksm)} MiB, mem_total: {mib_round(mem_total)} MiB"
         )
 
         w_mem = self.conf.percent_mem * (mem_total / mem_free_no_ksm) * 100
         logger.debug(
-            f"Node {node_name}: mem_total: {mem_total}, mem_free_no_ksm: {mem_free_no_ksm}, w_mem {round(w_mem, 2)}"
+            f"Node {node_name}: mem_total: {mib_round(mem_total)} MiB, mem_free_no_ksm: {mib_round(mem_free_no_ksm)} MiB, w_mem {round(w_mem, 2)}"
         )
         weight = round(w_cpu + w_mem)
 
@@ -152,7 +158,7 @@ class WorkloadBalancer:
         weight = round(w_cpu + w_mem)
 
         logger.debug(
-            f"Node {node_name}: workload {workload_kind}/{vmid} '{workload_name}': weight: {weight}, mem_used: {round(mem_used)}, cpu_used: {round(cpu_used, 2)}"
+            f"Node {node_name}: workload {workload_kind}/{vmid} '{workload_name}': weight: {weight}, mem_used: {mib_round(mem_used)} MiB, cpu_used: {round(cpu_used, 2)}"
         )
 
         return weight, mem_used, cpu_used
@@ -163,7 +169,7 @@ class WorkloadBalancer:
         for node in self.pve.nodes.get():
             node_name = node["node"]
             if node_name in self.conf.exclude_nodes:
-                logger.info(f"Node {node['node']}: ignoring per configuration")
+                logger.debug(f"Node {node['node']}: ignoring per configuration")
                 continue
 
             node_status = self.pve.nodes(node_name).status.get()
@@ -198,18 +204,22 @@ class WorkloadBalancer:
         w_mean = mean([n["weight"] for n in node_states.values()])
         l_mean = mean([n["workload_count"] for n in node_states.values()])
 
+        logger.debug(
+            f"Stats: Mean Weight: {round(w_mean, 2)}, Mean Workload Count: {round(l_mean, 2)}"
+        )
+
         candidates = {"source": {}, "destination": {}}
         source_count = 0
         destination_count = 0
 
         for node, state in node_states.items():
-            if state["weight"] < w_mean:  # * 0.9:
+            if state["weight"] < w_mean:
                 candidates["destination"].update({node: state})
                 destination_count += 1
                 logger.debug(
                     f"Found destination candidate: {node} (weight: {state['weight']}, workload_count: {state['workload_count']})"
                 )
-            if state["weight"] > w_mean and state["workload_count"] > l_mean:  # * 1.1
+            if state["weight"] > w_mean and state["workload_count"] > l_mean:
                 candidates["source"].update({node: state})
                 source_count += 1
                 logger.debug(
@@ -218,7 +228,11 @@ class WorkloadBalancer:
 
         migration_proposals = []
 
-        while source_count > 0 and destination_count > 0:
+        while (
+            source_count > 0
+            and destination_count > 0
+            and len(migration_proposals) <= self.conf.max_migrations
+        ):
 
             source_name, source_workloads = sorted(
                 candidates["source"].items(), key=lambda x: x[1]["weight"], reverse=True
@@ -237,17 +251,14 @@ class WorkloadBalancer:
                 key=lambda x: x[1]["weight"],
                 reverse=False,
             ):
-                # logger.debug(
-                #     f"{node_states[destination_name]['mem_free']}, {node_states[destination_name]['cpu_free']} >? {workload['mem_used']}, {workload['cpu_max']}"
-                # )
                 if (
                     node_states[destination_name]["mem_free"] > workload["mem_used"]
                     and node_states[destination_name]["cpu_free"] > workload["cpu_max"]
                 ):
                     del candidates["destination"][destination_name]
                     destination_count -= 1
-                    logger.info(
-                        f"Proposing workload migration: '{workload['name']}' ({workload['kind']}/{vmid}) from node {source_name} to node {destination_name}..."
+                    logger.debug(
+                        f"Proposing workload migration: '{workload['name']}' ({workload['kind']}/{vmid}) from node {source_name} to node {destination_name}"
                     )
                     migration_proposals.append(
                         MigrationSpec(
@@ -260,15 +271,15 @@ class WorkloadBalancer:
                     )
                     break
                 else:
-                    logger.info(
+                    logger.warning(
                         f"Could not find a destination node with enough free resources for workload '{workload['name']}' ({workload['kind']}/{vmid}) on node {source_name}"
                     )
 
         return migration_proposals
 
     def do_migration(self, spec: MigrationSpec) -> (bool, str):
-        logger.info(
-            f"Migrating workload '{spec.name}' ({spec.kind}/{spec.vmid}) from node {spec.source} to node {spec.destination}..."
+        logger.success(
+            f"Migrating workload '{spec.name}' ({spec.kind}/{spec.vmid}) from node {spec.source} to node {spec.destination}"
         )
 
         try:
@@ -287,9 +298,11 @@ class WorkloadBalancer:
                     )
                 case _:
                     raise TypeError(f"Unknown workload type: {spec.kind}")
+
         except ResourceException as e:
             logger.error(f"Migration failed, {spec.kind} is locked: {e}")
             return False, None
+
         except ConnectionError as e:
             logger.error(f"Migration failed, connection error: {e}")
             return False, None
