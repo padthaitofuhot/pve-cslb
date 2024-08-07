@@ -3,6 +3,8 @@ A Central Scheduler Load Balancer (CSLB) for PromoxVE (PVE)
 
 Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to balance things out.  Takes inspiration from, and expands upon, ideas in [this oft-cited paper](https://research.ijcaonline.org/volume46/number6/pxc3879263.pdf) from 2012.  
 
+# Installing
+
 # Using
 The defaults are reasonable.  Config file is optional.  Command line arguments are optional unless you want to use a config file.  Follows 12-factor conventions and configurable from environment variables ("CSLB_" namespace).  
 
