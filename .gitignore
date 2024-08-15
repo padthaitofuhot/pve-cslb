@@ -92,7 +92,7 @@ fabric.properties
 *.class
 
 # Generated files
-bin/
+Scripts/
 gen/
 
 # Gradle files
@@ -460,11 +460,6 @@ output.json
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
-
-# Keystore files
-
-# Google Services (e.g. APIs or Firebase)
-google-services.json
 
 # Android Profiling
 *.hprof
