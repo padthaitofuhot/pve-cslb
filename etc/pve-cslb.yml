@@ -20,10 +20,3 @@ percent_mem: 0.6
 
 # Max number of simultaneous migrations to start
 max_migrations: 5
-
-# Be Verbose/Quiet
-verbose: false
-quiet: false
-
-# Turn off color
-no_color: false
