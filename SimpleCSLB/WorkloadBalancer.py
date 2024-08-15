@@ -105,10 +105,9 @@ class WorkloadBalancer:
                 workload.update({"kind": "qemu"})
                 del workload["vmid"]
                 workloads.update({vmid: workload})
+            del workloads_from_node
         else:
             logger.debug(f"Ignoring QEMU workloads per configuration")
-
-        del workloads_from_node
 
         if "lxc" not in self.conf.exclude_types:
             try:
@@ -127,10 +126,9 @@ class WorkloadBalancer:
                 workload.update({"kind": "lxc"})
                 del workload["vmid"]
                 workloads.update({vmid: workload})
+                del workloads_from_node
         else:
             logger.debug(f"Ignoring LXC workloads per configuration")
-
-        del workloads_from_node
 
         return workloads
 
