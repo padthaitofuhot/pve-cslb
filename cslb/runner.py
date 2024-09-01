@@ -14,19 +14,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
 from os import environ
@@ -37,8 +24,8 @@ from sys import exit, stdout
 from loguru import logger
 from yaml import safe_load
 
-from SimpleCSLB.Config import Config, ConfigurationError
-from SimpleCSLB.WorkloadBalancer import WorkloadBalancer
+from cslb.config import Config, ConfigurationError
+from cslb.workload_balancer import WorkloadBalancer
 
 __version__ = "1.3.0"
 __title__ = "pve-cslb"
@@ -66,7 +53,7 @@ def main():
         "-c",
         "--config-file",
         metavar="FILE",
-        help=f"YAML configuration file (default: none)",
+        help="YAML configuration file (default: none)",
     )
     parser.add_argument(
         "-v",

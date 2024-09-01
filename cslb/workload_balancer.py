@@ -12,21 +12,22 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from statistics import mean
 
 from loguru import logger
 from proxmoxer import ProxmoxAPI, ResourceException
 from requests.exceptions import ConnectionError
 
-from .Config import Config
-from .MigrationSpec import MigrationSpec
+from .config import Config
+from .migration_spec import MigrationSpec
 
 logger.disable("WorkloadBalancer")
 
 MiB = 1048576
 
 
-def mib_round(x: int):
+def mib_round(x: int | float):
     return round(x / MiB, 2)
 
 
@@ -107,7 +108,7 @@ class WorkloadBalancer:
                 workloads.update({vmid: workload})
             del workloads_from_node
         else:
-            logger.debug(f"Ignoring QEMU workloads per configuration")
+            logger.debug("Ignoring QEMU workloads per configuration")
 
         if "lxc" not in self.conf.exclude_types:
             try:
@@ -128,7 +129,7 @@ class WorkloadBalancer:
                 workloads.update({vmid: workload})
                 del workloads_from_node
         else:
-            logger.debug(f"Ignoring LXC workloads per configuration")
+            logger.debug("Ignoring LXC workloads per configuration")
 
         return workloads
 
