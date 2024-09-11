@@ -1,12 +1,12 @@
 # pve-cslb
 A Central Scheduler Load Balancer (CSLB) for PromoxVE (PVE)
 
-Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to balance things out.  Takes inspiration from, and expands upon, ideas in [this oft-cited paper](https://research.ijcaonline.org/volume46/number6/pxc3879263.pdf) from 2012.  
+Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to balance things out.  Takes inspiration from, and expands upon, ideas in [this oft-cited paper](https://research.ijcaonline.org/volume46/number6/pxc3879263.pdf) from 2012.
 
 # Installing
 
 # Using
-The defaults are reasonable.  Config file is optional.  Command line arguments are optional unless you want to use a config file.  Follows 12-factor conventions and configurable from environment variables ("CSLB_" namespace).  
+The defaults are reasonable.  Config file is optional.  Command line arguments are optional unless you want to use a config file.  Follows 12-factor conventions and configurable from environment variables ("CSLB_" namespace).
 
 API endpoint and credentials with read and migrate permissions are required.
 
@@ -20,16 +20,14 @@ usage: pve-cslb [-h] [-c FILE] [-v] [-q] [-d] [--proxmox-node NODE] [--proxmox-p
                 [--include-node INCLUDE_NODE] [--include-vmid INCLUDE_VMID]
                 [--include-type INCLUDE_TYPE]
 
-pve-cslb 1.0.3 - A workload balancing engine for ProxmoxPVE. Identifies nodes with
-imbalanced loads and migrates workloads around to even things out.
-
 options:
   -h, --help            show this help message and exit
   -c FILE, --config-file FILE
-                        YAML configuration file (default: None)
-  -v, --verbose         Increase verbosity (default: False)
-  -q, --quiet           Only output errors (default: False)
-  -d, --dry-run         Perform read-only analysis; no write actions. (default: False)
+                        YAML configuration file (default: none)
+  -v, --verbose         Increase verbosity (default: false)
+  -q, --quiet           Only output errors (default: false)
+  -d, --dry-run         Perform read-only analysis; no write actions. (default: false)
+      --no-color        Disable ANSI color in output (default: false)
   --proxmox-node NODE   Proxmox node (default: localhost)
   --proxmox-port PORT   Proxmox port (default: 8006)
   --proxmox-user USER   Proxmox user (default: root@pam)
@@ -68,8 +66,6 @@ Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 | CSLB_PERCENT_CPU    |
 | CLSB_PERCENT_MEM    |
 | CLSB_MAX_MIGRATIONS |
-| CSLB_VERBOSE        |
-| CSLB_QUIET          |
 | CSLB_DRY_RUN        |
 
 # Known Issues
@@ -78,4 +74,4 @@ pve-cslb tries to avoid moving the same workload multiple times, but an edge-cas
 # Contributors
  [![padthaitofuhot](https://github.com/padthaitofuhot.png?size=100)](https://github.com/padthaitofuhot)
  | ---------------------------------------------------------------------------------------- |
- [padthaitofuhot](https://github.com/padthaitofuhot)   
+ [padthaitofuhot](https://github.com/padthaitofuhot)
