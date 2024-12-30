@@ -1,18 +1,43 @@
 # pve-cslb
+
 A Central Scheduler Load Balancer (CSLB) for PromoxVE (PVE)
 
-Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to balance things out.  Takes inspiration from, and expands upon, ideas in [this oft-cited paper](https://research.ijcaonline.org/volume46/number6/pxc3879263.pdf) from 2012.
+Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to
+balance things out. Takes inspiration from, and expands upon, ideas
+in [this oft-cited paper](https://research.ijcaonline.org/volume46/number6/pxc3879263.pdf) from 2012.
 
-# Installing
+---
+
+# Installation
+
+## From Repo
+
+1. Clone the repo
+2. Run `bash scripts/setup-dev-environment.sh`
+3. Done.
+
+---
 
 # Using
-The defaults are reasonable.  Config file is optional.  Command line arguments are optional unless you want to use a config file.  Follows 12-factor conventions and configurable from environment variables ("CSLB_" namespace).
 
-API endpoint and credentials with read and migrate permissions are required.
+## Requirements
 
-## CLI
+1. A valid Proxmox API endpoint
+2. Credentials with read and migrate permissions
+3. An environment capable of running the script
+
+## Configuration
+
+The defaults are reasonable. Config file is optional. Command line arguments are optional unless you want to use a
+config file (to tell the script where to find it).
+
+The default runner follows 12-factor conventions and is configurable from environment variables ("CSLB_" namespace; see
+below).
+
+## CLI Runner
+
 ```
-$ ./pve-cslb.py --exclude-node firefly -v --help
+$ rye run pve-cslb --exclude-node firefly -v --help
 usage: pve-cslb [-h] [-c FILE] [-v] [-q] [-d] [--proxmox-node NODE] [--proxmox-port PORT]
                 [--proxmox-user USER] [--proxmox-pass PASS] [-m NUM] [--percent-cpu %]
                 [--percent-mem %] [--exclude-node EXCLUDE_NODE]
@@ -56,7 +81,8 @@ options:
 Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 ```
 
-## Available Env Vars
+## Available Env Vars in the default runner
+
 | Env Vars            |
 |---------------------|
 | CSLB_PROXMOX_NODE   |
@@ -68,10 +94,18 @@ Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 | CLSB_MAX_MIGRATIONS |
 | CSLB_DRY_RUN        |
 
+---
+
 # Known Issues
-pve-cslb tries to avoid moving the same workload multiple times, but an edge-case exists in which lightly loaded clusters with few workloads and many nodes may see more migrations than strictly necessary.  Adding more workloads to the cluster will generally cease this behavior.
+
+pve-cslb tries to avoid moving the same workload multiple times, but an edge-case exists in which lightly loaded
+clusters with few workloads per node may see more migrations than strictly necessary. Adding more workloads to the
+cluster will generally cease this behavior.
+
+---
 
 # Contributors
- [![padthaitofuhot](https://github.com/padthaitofuhot.png?size=100)](https://github.com/padthaitofuhot)
- | ---------------------------------------------------------------------------------------- |
- [padthaitofuhot](https://github.com/padthaitofuhot)
+
+| [![padthaitofuhot](https://github.com/padthaitofuhot.png?size=100)](https://github.com/padthaitofuhot) |
+|--------------------------------------------------------------------------------------------------------|
+| [padthaitofuhot](https://github.com/padthaitofuhot)                                                    |

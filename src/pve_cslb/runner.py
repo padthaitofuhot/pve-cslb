@@ -1,6 +1,21 @@
 #!/usr/Scripts/env python3
+"""Basic runner for pve-cslb"""
+
 
 #  Copyright (C) 2024 Travis Wichert
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -24,10 +39,10 @@ from sys import exit, stdout
 from loguru import logger
 from yaml import safe_load
 
-from cslb.config import Config, ConfigurationError
-from cslb.workload_balancer import WorkloadBalancer
+from pve_cslb.config import Config, ConfigurationError
+from pve_cslb.workload_balancer import WorkloadBalancer
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __title__ = "pve-cslb"
 __copyright__ = """
 Copyright (C) 2024 Travis Wichert <padthaitofuhot@protonmail.com>
@@ -43,7 +58,6 @@ re_exclude = compile(r"^exclude.*$")
 
 @logger.catch(level="ERROR")
 def main():
-
     parser = ArgumentParser(
         prog="pve-cslb",
         description=f"{__title__} {__version__} - {__description__}",
@@ -241,7 +255,6 @@ def main():
         ex_var_s = var_s.replace("include", "exclude")
 
         if environ.get(f"CSLB_{var_s.upper()}"):
-
             if re_match(re_exclude, var):
                 env_list = environ.get(f"CSLB_{var_s.upper()}").split(" ")
                 cnf_list = getattr(lb_config, var_s)
@@ -271,7 +284,6 @@ def main():
                 del new_list
 
         if var in args.keys() and args[var] is not None:
-
             if re_match(re_exclude, var):
                 cnf_list = getattr(lb_config, var_s)
                 for item in args[var]:
@@ -290,17 +302,20 @@ def main():
                         logger.debug(f"CLI: Configured {ex_var_s}: removed {item}")
                 del cnf_list
 
-    my_simple_cslb = WorkloadBalancer(lb_config)
-    migration_candidates = my_simple_cslb.get_migration_candidates()
+    my_cslb = WorkloadBalancer(lb_config)
+    migration_candidates = my_cslb.get_migration_candidates()
 
     if len(migration_candidates) < 1:
         logger.success("No migration candidate(s) found.")
         exit(0)
 
     if not lb_config.dry_run:
+        migrations = list()
         for migration_candidate in migration_candidates:
-            success, jobspec = my_simple_cslb.do_migration(migration_candidate)
+            success, jobspec = my_cslb.do_migration(migration_candidate)
+            migrations.append(jobspec)
         logger.success("Migration job(s) submitted")
+
         exit(0)
     else:
         logger.success("Dry run; no migration(s) started.")

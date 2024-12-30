@@ -1,33 +1,68 @@
-[tool.poetry]
+[project]
 name = "pve-cslb"
-version = "1.3.0"
+version = "1.4.0"
 description = "A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out."
-authors = ["padthaitofuhot <padthaitofuhot@users.noreply.github.com>"]
-readme = "README.md"
-packages = [
-    { include = "SimpleCSLB" },
+authors = [
+    { name = "padthaitofuhot", email = "padthaitofuhot@users.noreply.github.com" }
 ]
+dependencies = [
+    "loguru>=0.7.3",
+    "proxmoxer>=2.2.0",
+    "requests>=2.32.3",
+    "pyyaml>=6.0.2"
+]
+readme = "README.md"
+requires-python = ">= 3.12"
 
-[tool.poetry.scripts]
-pve-cslb = 'SimpleCSLB.Runner:main'
-
-[tool.poetry.dependencies]
-python = "^3.10"
-loguru = "^0.7.2"
-proxmoxer = "^2.0.1"
-requests = "^2.32.3"
-pyyaml = "^6.0.2"
-
-[tool.poetry-plugin-bump]
-commit_msg = 'bump: v{version}'
-tag_name = 'v{version}'
+[project.scripts]
+pve-cslb = 'pve_cslb.runner:main'
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.pylint.format]
-max-line-length = "88"
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "notebook>=7.3.2",
+]
 
-[tool.isort]
-profile = 'black'
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pve_cslb"]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "*.ipynb"
+]
+extend-exclude = ["*.ipynb"]

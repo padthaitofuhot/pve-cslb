@@ -1,4 +1,21 @@
+"""config module
+This module contains the Config class and helpers.
+"""
+
 #  Copyright (C) 2024 Travis Wichert
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -23,6 +40,12 @@ class ConfigurationError(Exception):
 
 
 class Config:
+    """
+    This class provides necessary config data for connecting to Proxmox and identifying
+    and scheduling workload migrations.
+    """
+
+    # pylint: disable=R0902
     args: dict
     config_file: str
     dry_run: bool
@@ -59,19 +82,23 @@ class Config:
 
     @property
     def percent_cpu(self) -> float:
+        """Property getter for _percent_cpu"""
         return self._percent_cpu
 
     @percent_cpu.setter
     def percent_cpu(self, percent_cpu: float = 0.4):
+        """Property setter for _percent_cpu"""
         self._percent_cpu = percent_cpu
         self.balance_resource_weights()
 
     @property
     def percent_mem(self) -> float:
+        """Property getter for _percent_mem"""
         return self._percent_mem
 
     @percent_mem.setter
     def percent_mem(self, percent_mem: float = 0.6):
+        """Property setter for _percent_mem"""
         self._percent_mem = percent_mem
         self.balance_resource_weights()
 
@@ -94,15 +121,13 @@ class Config:
         }
 
     def balance_resource_weights(self):
-        # Resolve proportions so they always sum to 1
+        """Ensures resource weighting proportions always sum to 1"""
         if self._percent_cpu + self._percent_mem > 1:
             if self._percent_cpu > self._percent_mem:
-                if self._percent_cpu > 1:
-                    self._percent_cpu = 1
+                self._percent_cpu = min(self._percent_cpu, 1)
                 self._percent_mem = 1 - self._percent_cpu
             if self._percent_cpu < self._percent_mem:
-                if self._percent_mem > 1:
-                    self._percent_mem = 1
+                self._percent_mem = min(self._percent_mem, 1)
                 self._percent_cpu = 1 - self._percent_mem
             if self._percent_cpu == self._percent_mem:
                 self._percent_cpu = 0.5

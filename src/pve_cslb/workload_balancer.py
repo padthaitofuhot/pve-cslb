@@ -12,11 +12,25 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from statistics import mean
 
 from loguru import logger
-from proxmoxer import ProxmoxAPI, ResourceException
+from proxmoxer import AuthenticationError, ProxmoxAPI, ResourceException
+from proxmoxer.tools import Tasks
 from requests.exceptions import ConnectionError
 
 from .config import Config
@@ -24,15 +38,14 @@ from .migration_spec import MigrationSpec
 
 logger.disable("WorkloadBalancer")
 
-MiB = 1048576
+SIZE_MEBIBYTE = 1048576
 
 
 def mib_round(x: int | float):
-    return round(x / MiB, 2)
+    return round(x / SIZE_MEBIBYTE, 2)
 
 
 class WorkloadBalancer:
-
     conf = None
     proxmox = None
 
@@ -48,7 +61,7 @@ class WorkloadBalancer:
                 user=self.conf.proxmox_user,
                 password=self.conf.proxmox_pass,
             )
-        except (ResourceException, ConnectionError) as e:
+        except (ResourceException, ConnectionError, AuthenticationError) as e:
             logger.error(e)
             exit(1)
 
@@ -127,7 +140,7 @@ class WorkloadBalancer:
                 workload.update({"kind": "lxc"})
                 del workload["vmid"]
                 workloads.update({vmid: workload})
-                del workloads_from_node
+            del workloads_from_node
         else:
             logger.debug("Ignoring LXC workloads per configuration")
 
@@ -232,7 +245,6 @@ class WorkloadBalancer:
             and destination_count > 0
             and len(migration_proposals) <= self.conf.max_migrations
         ):
-
             source_name, source_workloads = sorted(
                 candidates["source"].items(), key=lambda x: x[1]["weight"], reverse=True
             )[0]
@@ -245,7 +257,7 @@ class WorkloadBalancer:
             source_count -= 1
 
             # Find a destination candidate with enough free memory for the source workload
-            for destination_name, destination_workloads in sorted(
+            for destination_name, _ in sorted(
                 candidates["destination"].items(),
                 key=lambda x: x[1]["weight"],
                 reverse=False,
@@ -284,13 +296,13 @@ class WorkloadBalancer:
         try:
             match spec.kind:
                 case "lxc":
-                    job = (
+                    job = Tasks.decode_upid(
                         self.pve.nodes(spec.source)
                         .lxc(spec.vmid)
                         .migrate.post(target=spec.destination, online=0)
                     )
                 case "qemu":
-                    job = (
+                    job = Tasks.decode_upid(
                         self.pve.nodes(spec.source)
                         .qemu(spec.vmid)
                         .migrate.post(target=spec.destination, online=1)
@@ -306,5 +318,5 @@ class WorkloadBalancer:
             logger.error(f"Migration failed, connection error: {e}")
             return False, None
 
-        logger.debug(f"Migration jobspec: {job}")
+        logger.debug(f"Migration UPID: {job['upid']}")
         return True, job
