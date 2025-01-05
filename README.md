@@ -1,6 +1,6 @@
 # pve-cslb
 
-A Central Scheduler Load Balancer (CSLB) for PromoxVE (PVE)
+A Central Scheduler Load Balancer (CSLB) for ProxmoxVE (PVE)
 
 Identifies nodes with resource surpluses and deficits (presently only CPU and memory) and migrates workloads around to
 balance things out. Takes inspiration from, and expands upon, ideas
