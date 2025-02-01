@@ -87,7 +87,7 @@ class WorkloadBalancer:
         mem_ksm = int(node_status["ksm"]["shared"])
         mem_free_no_ksm = mem_total - (mem_used + mem_ksm)
         logger.debug(
-            f"Node {node_name}: mem_free: {mib_round(mem_free)} MiB, mem_ksm: {mib_round(mem_ksm)} MiB, mem_total: {mib_round(mem_total)} MiB"
+            f"Node {node_name}: mem_free: {mib_round(mem_free)} MiB, mem_ksm: {mib_round(mem_ksm)} MiB"
         )
 
         w_mem = self.conf.percent_mem * (mem_total / mem_free_no_ksm) * 100
@@ -147,7 +147,7 @@ class WorkloadBalancer:
         return workloads
 
     def get_workload_state(
-        self, node_name: str, node_status: dict, vmid: int, workload: dict
+            self, node_name: str, node_status: dict, vmid: int, workload: dict
     ) -> (int, int, float):
         workload_name = workload["name"]
         workload_kind = workload["kind"]
@@ -241,9 +241,9 @@ class WorkloadBalancer:
         migration_proposals = []
 
         while (
-            source_count > 0
-            and destination_count > 0
-            and len(migration_proposals) <= self.conf.max_migrations
+                source_count > 0
+                and destination_count > 0
+                and len(migration_proposals) <= self.conf.max_migrations
         ):
             source_name, source_workloads = sorted(
                 candidates["source"].items(), key=lambda x: x[1]["weight"], reverse=True
@@ -258,13 +258,13 @@ class WorkloadBalancer:
 
             # Find a destination candidate with enough free memory for the source workload
             for destination_name, _ in sorted(
-                candidates["destination"].items(),
-                key=lambda x: x[1]["weight"],
-                reverse=False,
+                    candidates["destination"].items(),
+                    key=lambda x: x[1]["weight"],
+                    reverse=False,
             ):
                 if (
-                    node_states[destination_name]["mem_free"] > workload["mem_used"]
-                    and node_states[destination_name]["cpu_free"] > workload["cpu_max"]
+                        node_states[destination_name]["mem_free"] > workload["mem_used"]
+                        and node_states[destination_name]["cpu_free"] > workload["cpu_max"]
                 ):
                     del candidates["destination"][destination_name]
                     destination_count -= 1
