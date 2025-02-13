@@ -26,7 +26,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from statistics import mean
+from statistics import mean, stdev
 
 from loguru import logger
 from proxmoxer import AuthenticationError, ProxmoxAPI, ResourceException
@@ -52,7 +52,7 @@ class WorkloadBalancer:
     def __init__(self, conf: Config) -> None:
         self.conf = conf
         logger.info(
-            f"Using Proxmox API at {self.conf.proxmox_node}:{self.conf.proxmox_port}"
+            f"Using Proxmox API at https://{self.conf.proxmox_node}:{self.conf.proxmox_port}"
         )
         try:
             self.pve = ProxmoxAPI(
@@ -213,12 +213,19 @@ class WorkloadBalancer:
                 }
             )
 
-        w_mean = mean([n["weight"] for n in node_states.values()])
-        l_mean = mean([n["workload_count"] for n in node_states.values()])
+        node_weights = [n["weight"] for n in node_states.values()]
+        w_mean = mean(node_weights)
+        w_stdev = stdev(node_weights)
+        w_tolerance = w_mean * self.conf.tolerance
 
         logger.debug(
-            f"Stats: Mean Weight: {round(w_mean, 2)}, Mean Workload Count: {round(l_mean, 2)}"
+            f"Stats: Mean Weight: {round(w_mean, 2)}, Stdev Weight: {round(w_stdev, 2)}, Disparity Tolerated: {round(w_tolerance, 2)}"
         )
+
+        # Only look for migration candidates if the cluster is intolerably out of balance
+        if w_tolerance > w_stdev:
+            logger.success(f"Cluster is balanced (tolerance: {self.conf.tolerance * 100}%).")
+            return []
 
         candidates = {"source": {}, "destination": {}}
         source_count = 0
@@ -231,7 +238,7 @@ class WorkloadBalancer:
                 logger.debug(
                     f"Found destination candidate: {node} (weight: {state['weight']}, workload_count: {state['workload_count']})"
                 )
-            if state["weight"] > w_mean and state["workload_count"] > l_mean:
+            if state["weight"] > w_mean + w_stdev:
                 candidates["source"].update({node: state})
                 source_count += 1
                 logger.debug(

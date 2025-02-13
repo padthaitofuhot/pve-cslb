@@ -59,6 +59,7 @@ options:
   --proxmox-pass PASS   Proxmox password (no default)
   -m NUM, --max-migrations NUM
                         Max simultaneous migrations to start (default: 5)
+  --tolerance %         Max load disparity tolerance (default: 0.2)
   --percent-cpu %       Percent priority of CPU rule (p-cpu and p-mem must equal 1.0;
                         default: 0.4)
   --percent-mem %       Percent priority of MEM rule (p-cpu and p-mem must equal 1.0;

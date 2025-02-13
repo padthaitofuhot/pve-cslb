@@ -1,7 +1,6 @@
 #!/usr/Scripts/env python3
 """Basic runner for pve-cslb"""
 
-
 #  Copyright (C) 2024 Travis Wichert
 #
 #  This program is free software: you can redistribute it and/or modify
@@ -122,6 +121,12 @@ def main():
         help="Max simultaneous migrations to start (default: 5)",
     )
     parser.add_argument(
+        "--tolerance",
+        metavar="%",
+        type=float,
+        help="Max workload disparity tolerance (default: 0.2)",
+    )
+    parser.add_argument(
         "--percent-cpu",
         metavar="%",
         type=float,
@@ -224,6 +229,7 @@ def main():
         "proxmox_port",
         "proxmox_user",
         "proxmox_pass",
+        "tolerance",
         "percent_cpu",
         "percent_mem",
         "max_migrations",

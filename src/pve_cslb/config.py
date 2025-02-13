@@ -55,6 +55,7 @@ class Config:
     exclude_nodes: list
     exclude_vmids: list
     exclude_types: list
+    tolerance: float
     _percent_cpu: float
     _percent_mem: float
     max_migrations: int
@@ -72,6 +73,7 @@ class Config:
         self.exclude_nodes = []
         self.exclude_vmids = []
         self.exclude_types = []
+        self.tolerance = 0.2
         self._percent_cpu = 0.4
         self._percent_mem = 0.6
         self.max_migrations = 5
