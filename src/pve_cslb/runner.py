@@ -44,7 +44,7 @@ from pve_cslb.workload_balancer import WorkloadBalancer
 __version__ = "1.4.0"
 __title__ = "pve-cslb"
 __copyright__ = """
-Copyright (C) 2024 Travis Wichert <padthaitofuhot@protonmail.com>
+Copyright (C) 2024-2025 Travis Wichert <padthaitofuhot@protonmail.com>
 """
 __description__ = """
 A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
