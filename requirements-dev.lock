@@ -149,8 +149,6 @@ notebook==7.3.2
 notebook-shim==0.2.4
     # via jupyterlab
     # via notebook
-openssh-wrapper==0.4
-    # via pve-cslb
 overrides==7.7.0
     # via jupyter-server
 packaging==24.2
