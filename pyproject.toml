@@ -9,7 +9,9 @@ dependencies = [
     "loguru>=0.7.3",
     "proxmoxer>=2.2.0",
     "requests>=2.32.3",
-    "pyyaml>=6.0.2"
+    "pyyaml>=6.0.2",
+    "paramiko>=3.5.1",
+    "openssh-wrapper>=0.4",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
