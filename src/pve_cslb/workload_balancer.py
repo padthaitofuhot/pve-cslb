@@ -56,6 +56,7 @@ class WorkloadBalancer:
         )
         try:
             self.pve = ProxmoxAPI(
+                backend=self.conf.proxmox_backend,
                 host=self.conf.proxmox_node,
                 port=self.conf.proxmox_port,
                 user=self.conf.proxmox_user,
