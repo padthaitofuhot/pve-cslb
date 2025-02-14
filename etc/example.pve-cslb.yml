@@ -1,16 +1,23 @@
 ---
+## Proxmox backend to use
+proxmox_backend: https
+
 ## Any Proxmox node in the cluster with sufficient resources
 proxmox_node: localhost
+
 ## Port to connect to (default 8006)
 proxmox_port: 8006
+
 ## Credentials for pam user with node and workload read and migrate permissions (default root@pam)
 proxmox_user: root@pam
 proxmox_pass: password
 
 # List of specific Proxmox hosts to ignore
 exclude_nodes: [ ]
+
 # List of vmids to ignore
 exclude_vmids: [ ]
+
 # List of workload types to ignore ("lxc" or "qemu")
 exclude_types: [ ]
 

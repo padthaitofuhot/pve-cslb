@@ -59,6 +59,7 @@ class Config:
     _percent_cpu: float
     _percent_mem: float
     max_migrations: int
+    proxmox_backend: str
     proxmox_user: str
     proxmox_pass: str
     proxmox_node: str
@@ -77,6 +78,7 @@ class Config:
         self._percent_cpu = 0.4
         self._percent_mem = 0.6
         self.max_migrations = 5
+        self.proxmox_backend = "https"
         self.proxmox_user = "root@pam"
         self.proxmox_pass = ""
         self.proxmox_node = "localhost"

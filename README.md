@@ -51,8 +51,10 @@ options:
                         YAML configuration file (default: none)
   -v, --verbose         Increase verbosity (default: false)
   -q, --quiet           Only output errors (default: false)
-  -d, --dry-run         Perform read-only analysis; no write actions. (default: false)
+  -d, --dry-run         Perform read-only analysis; no write actions (default: false)
       --no-color        Disable ANSI color in output (default: false)
+  --proxmox-backend BACKEND
+                        Proxmox API connection method (default: https)
   --proxmox-node NODE   Proxmox node (default: localhost)
   --proxmox-port PORT   Proxmox port (default: 8006)
   --proxmox-user USER   Proxmox user (default: root@pam)
@@ -82,26 +84,40 @@ options:
 Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
 ```
 
-## Available Env Vars in the default runner
+## Available environment variables in the default runner
 
-| Env Vars            |
-|---------------------|
-| CSLB_PROXMOX_NODE   |
-| CSLB_PROXMOX_PORT   |
-| CSLB_PROXMOX_USER   |
-| CSLB_PROXMOX_PASS   |
-| CSLB_PERCENT_CPU    |
-| CLSB_PERCENT_MEM    |
-| CLSB_MAX_MIGRATIONS |
-| CSLB_DRY_RUN        |
+| Env Vars             |
+|----------------------|
+| CSLB_PROXMOX_BACKEND |
+| CSLB_PROXMOX_NODE    |
+| CSLB_PROXMOX_PORT    |
+| CSLB_PROXMOX_USER    |
+| CSLB_PROXMOX_PASS    |
+| CSLB_TOLERANCE       |
+| CSLB_PERCENT_CPU     |
+| CLSB_PERCENT_MEM     |
+| CLSB_MAX_MIGRATIONS  |
+| CSLB_DRY_RUN         |
 
 ---
 
 # Known Issues
 
-pve-cslb tries to avoid moving the same workload multiple times, but an edge-case exists in which lightly loaded
-clusters with few workloads per node may see more migrations than strictly necessary. Adding more workloads to the
-cluster will generally cease this behavior.
+- ~~pve-cslb tries to avoid moving the same workload multiple times, but an edge-case exists in which lightly loaded
+  clusters with few workloads per node may see more migrations than strictly necessary. Adding more workloads to the
+  cluster will generally cease this behavior.~~
+
+---
+
+# Dependencies
+
+| Module    | Purpose            | Linky                                  |
+|-----------|--------------------|----------------------------------------|
+| proxmoxer | Proxmox API        | https://github.com/proxmoxer/proxmoxer
+| requests  | API backend        | https://github.com/psf/requests        |
+| paramiko  | API backend        | https://github.com/paramiko/paramiko   |
+| loguru    | Pretty logging     | https://github.com/Delgan/loguru       |
+| pyyaml    | YAML configuration | https://github.com/yaml/pyyaml         |
 
 ---
 
