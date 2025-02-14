@@ -52,7 +52,7 @@ class WorkloadBalancer:
     def __init__(self, conf: Config) -> None:
         self.conf = conf
         logger.info(
-            f"Using Proxmox API at https://{self.conf.proxmox_node}:{self.conf.proxmox_port}"
+            f"Using Proxmox API at {self.conf.proxmox_backend}://{self.conf.proxmox_node}:{self.conf.proxmox_port}"
         )
         try:
             self.pve = ProxmoxAPI(

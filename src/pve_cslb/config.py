@@ -46,10 +46,11 @@ class Config:
     _percent_cpu: float = 0.4
     _percent_mem: float = 0.6
     max_migrations: int = 5
+    proxmox_node: str = "localhost"
+    proxmox_scheme: str = "https"
+    proxmox_port: int = 8006
     proxmox_user: str = "root@pam"
     proxmox_pass: str = ""
-    proxmox_node: str = "localhost"
-    proxmox_port: int = 8006
     proxmox_verify_ssl: bool = True
 
     def __init__(self):

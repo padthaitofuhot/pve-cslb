@@ -88,7 +88,13 @@ def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Perform read-only analysis; no write actions. (default: false)",
+        help="Perform read-only analysis; no write actions (default: false)",
+    )
+    parser.add_argument(
+        "--proxmox-backend",
+        metavar="BACKEND",
+        type=str,
+        help="Proxmox API connection method (default: https)",
     )
     parser.add_argument(
         "--proxmox-node",
@@ -225,6 +231,7 @@ def main():
 
     # Scalars
     for var in [
+        "proxmox_backend",
         "proxmox_node",
         "proxmox_port",
         "proxmox_user",
