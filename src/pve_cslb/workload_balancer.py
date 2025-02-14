@@ -252,13 +252,16 @@ class WorkloadBalancer:
                 and destination_count > 0
                 and len(migration_proposals) <= self.conf.max_migrations
         ):
+            # Sort nodes in order of descending load (weight)
             source_name, source_workloads = sorted(
                 candidates["source"].items(), key=lambda x: x[1]["weight"], reverse=True
             )[0]
+
+            # Sort workloads in order of ascending weight
             vmid, workload = sorted(
                 candidates["source"][source_name]["workloads"].items(),
                 key=lambda x: x[1]["weight"],
-                reverse=True,
+                reverse=False,
             )[0]
             del candidates["source"][source_name]
             source_count -= 1
