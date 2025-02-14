@@ -57,6 +57,10 @@ re_exclude = compile(r"^exclude.*$")
 
 @logger.catch(level="ERROR")
 def main():
+    #
+    # Configuration
+    #
+
     parser = ArgumentParser(
         prog="pve-cslb",
         description=f"{__title__} {__version__} - {__description__}",
@@ -314,6 +318,10 @@ def main():
                         setattr(lb_config, ex_var_s, cnf_list)
                         logger.debug(f"CLI: Configured {ex_var_s}: removed {item}")
                 del cnf_list
+
+    #
+    # Main
+    #
 
     my_cslb = WorkloadBalancer(lb_config)
     migration_candidates = my_cslb.get_migration_candidates()
