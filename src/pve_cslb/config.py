@@ -74,7 +74,7 @@ class Config:
     @percent_cpu.setter
     def percent_cpu(self, percent_cpu: float = 0.4):
         """Property setter for _percent_cpu"""
-        self._percent_cpu = percent_cpu
+        self._percent_cpu = float(percent_cpu)
         self.balance_resource_weights()
 
     @property
@@ -85,7 +85,7 @@ class Config:
     @percent_mem.setter
     def percent_mem(self, percent_mem: float = 0.6):
         """Property setter for _percent_mem"""
-        self._percent_mem = percent_mem
+        self._percent_mem = float(percent_mem)
         self.balance_resource_weights()
 
     def balance_resource_weights(self):
