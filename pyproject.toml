@@ -3,7 +3,7 @@ name = "pve-cslb"
 version = "1.4.0"
 description = "A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out."
 authors = [
-    { name = "padthaitofuhot", email = "padthaitofuhot@users.noreply.github.com" }
+    { name = "Travis Wichert", email = "travis@padthaitofuhot.com" }
 ]
 dependencies = [
     "loguru>=0.7.3",

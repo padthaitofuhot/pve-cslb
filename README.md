@@ -37,13 +37,15 @@ below).
 ## CLI Runner
 
 ```
-$ rye run pve-cslb --exclude-node firefly -v --help
-usage: pve-cslb [-h] [-c FILE] [-v] [-q] [-d] [--proxmox-node NODE] [--proxmox-port PORT]
-                [--proxmox-user USER] [--proxmox-pass PASS] [-m NUM] [--percent-cpu %]
-                [--percent-mem %] [--exclude-node EXCLUDE_NODE]
-                [--exclude-vmid EXCLUDE_VMID] [--exclude-type EXCLUDE_TYPE]
-                [--include-node INCLUDE_NODE] [--include-vmid INCLUDE_VMID]
-                [--include-type INCLUDE_TYPE]
+$ rye run pve-cslb ---help
+usage: pve-cslb [-h] [-c FILE] [-v] [-q] [--no-color] [--dry-run] [--proxmox-backend BACKEND]
+                [--proxmox-node NODE] [--proxmox-port PORT] [--proxmox-user USER] [--proxmox-pass PASS]
+                [--max-migrations NUM] [--tolerance %] [--percent-cpu %] [--percent-mem %]
+                [--exclude-node EXCLUDE_NODE] [--exclude-vmid EXCLUDE_VMID] [--exclude-type EXCLUDE_TYPE]
+                [--include-node INCLUDE_NODE] [--include-vmid INCLUDE_VMID] [--include-type INCLUDE_TYPE]
+
+pve-cslb 1.4.0 - A workload balancing engine for ProxmoxPVE. Identifies nodes with imbalanced loads and migrates
+workloads around to even things out.
 
 options:
   -h, --help            show this help message and exit
@@ -51,37 +53,33 @@ options:
                         YAML configuration file (default: none)
   -v, --verbose         Increase verbosity (default: false)
   -q, --quiet           Only output errors (default: false)
-  -d, --dry-run         Perform read-only analysis; no write actions (default: false)
-      --no-color        Disable ANSI color in output (default: false)
+  --no-color            Disable ANSI color in output (default: false)
+  --dry-run             Perform read-only analysis; no write actions (default: false)
   --proxmox-backend BACKEND
                         Proxmox API connection method (default: https)
   --proxmox-node NODE   Proxmox node (default: localhost)
   --proxmox-port PORT   Proxmox port (default: 8006)
   --proxmox-user USER   Proxmox user (default: root@pam)
   --proxmox-pass PASS   Proxmox password (no default)
-  -m NUM, --max-migrations NUM
-                        Max simultaneous migrations to start (default: 5)
-  --tolerance %         Max load disparity tolerance (default: 0.2)
-  --percent-cpu %       Percent priority of CPU rule (p-cpu and p-mem must equal 1.0;
-                        default: 0.4)
-  --percent-mem %       Percent priority of MEM rule (p-cpu and p-mem must equal 1.0;
-                        default: 0.6)
+  --max-migrations NUM  Max simultaneous migrations to start (default: 5)
+  --tolerance %         Max workload disparity tolerance (default: 0.2)
+  --percent-cpu %       Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default: 0.4)
+  --percent-mem %       Percent priority of MEM rule (p-cpu and p-mem must equal 1.0; default: 0.6)
   --exclude-node EXCLUDE_NODE
                         Exclude a node (can be specified multiple times)
   --exclude-vmid EXCLUDE_VMID
                         Exclude a VMID (can be specified multiple times)
   --exclude-type EXCLUDE_TYPE
-                        Exclude a workload type ('lxc' or 'qemu'; can be specified multiple
-                        times)
+                        Exclude a workload type ('lxc' or 'qemu'; can be specified multiple times)
   --include-node INCLUDE_NODE
                         Include a previously excluded node (can be specified multiple times)
   --include-vmid INCLUDE_VMID
                         Include a previously excluded VMID (can be specified multiple times)
   --include-type INCLUDE_TYPE
-                        Include a previously excluded workload type (must be 'lxc' or
-                        'qemu'; can be specified multiple times)
+                        Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified
+                        multiple times)
 
-Copyright (C) 2024 Travis Wichert <padthaitofuhot@users.noreply.github.com>
+Copyright (C) 2024-2025 Travis Wichert <padthaitofuhot@protonmail.com>
 ```
 
 ## Available environment variables in the default runner

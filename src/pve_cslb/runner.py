@@ -1,20 +1,8 @@
 #!/usr/Scripts/env python3
 """Basic runner for pve-cslb"""
 
-#  Copyright (C) 2024 Travis Wichert
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# pve-cslb - a central scheduling load balancer for Proxmox PVE
+# Copyright (C) 2024-2025  Travis Wichert
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -44,7 +32,7 @@ from pve_cslb.workload_balancer import WorkloadBalancer
 __version__ = "1.4.0"
 __title__ = "pve-cslb"
 __copyright__ = """
-Copyright (C) 2024-2025 Travis Wichert <padthaitofuhot@protonmail.com>
+Copyright (C) 2024-2025 Travis Wichert <travis@padthaitofuhot.com>
 """
 __description__ = """
 A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
@@ -70,7 +58,7 @@ def main():
         "-c",
         "--config-file",
         metavar="FILE",
-        help="YAML configuration file (default: none)",
+        help="YAML configuration file (default: /etc/pve-cslb.yml)",
     )
     parser.add_argument(
         "-v",
@@ -95,10 +83,10 @@ def main():
         help="Perform read-only analysis; no write actions (default: false)",
     )
     parser.add_argument(
-        "--proxmox-backend",
-        metavar="BACKEND",
+        "--proxmox-scheme",
+        metavar="SCHEME",
         type=str,
-        help="Proxmox API connection method (default: https)",
+        help="Proxmox API connection method (https [default], paramiko, local)",
     )
     parser.add_argument(
         "--proxmox-node",
@@ -235,8 +223,8 @@ def main():
 
     # Scalars
     for var in [
-        "proxmox_backend",
         "proxmox_node",
+        "proxmox_scheme",
         "proxmox_port",
         "proxmox_user",
         "proxmox_pass",

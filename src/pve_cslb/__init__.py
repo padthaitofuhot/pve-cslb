@@ -1,4 +1,5 @@
-#  Copyright (C) 2024 Travis Wichert
+# pve-cslb - a central scheduling load balancer for Proxmox PVE
+# Copyright (C) 2024-2025  Travis Wichert
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
