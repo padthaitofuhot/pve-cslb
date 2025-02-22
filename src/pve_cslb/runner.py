@@ -86,7 +86,7 @@ def main():
         "--proxmox-scheme",
         metavar="SCHEME",
         type=str,
-        help="Proxmox API connection method (https [default], paramiko, local)",
+        help="Proxmox API connection method (https [default], ssh, local)",
     )
     parser.add_argument(
         "--proxmox-node",
