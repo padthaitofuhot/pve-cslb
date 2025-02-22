@@ -26,7 +26,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from statistics import mean, stdev
+from statistics import mean, stdev, variance, median, mode, fmean
 
 from loguru import logger
 from proxmoxer import AuthenticationError, ProxmoxAPI, ResourceException
@@ -213,17 +213,26 @@ class WorkloadBalancer:
                 }
             )
 
-        node_weights = [n["weight"] for n in node_states.values()]
-        w_mean = mean(node_weights)
-        w_stdev = stdev(node_weights)
+        node_weights = sorted([n["weight"] for n in node_states.values()])
+        logger.debug(f"Node weights: {node_weights}")
+        w_median = median(node_weights)
+        w_mean = fmean(node_weights)
+        w_stdev = stdev(node_weights, w_mean)
+        w_variance = variance(node_weights, w_mean)
         w_tolerance = w_mean * self.conf.tolerance
+        if len(node_weights) > 1:
+            w_disparity = abs(node_weights[-1] - node_weights[0])
+        else:
+            w_disparity = 0
+        w_mode = mode(node_weights)
 
         logger.debug(
-            f"Stats: Mean Weight: {round(w_mean, 2)}, Stdev Weight: {round(w_stdev, 2)}, Disparity Tolerated: {round(w_tolerance, 2)}"
+            f"Weight Stats: Median: {round(w_median, 2)}, Mean: {round(w_mean, 2)}, Stdev: {round(w_stdev, 2)}, Disparity: {round(w_disparity, 2)}"
         )
+        logger.debug(f"Disparity Condition: Disparity {round(w_disparity, 2)} > Tolerance {round(w_tolerance, 2)}")
 
         # Only look for migration candidates if the cluster is intolerably out of balance
-        if w_tolerance > w_stdev:
+        if w_disparity < w_tolerance:
             logger.success(f"Cluster is balanced (tolerance: {self.conf.tolerance * 100}%).")
             return []
 
@@ -235,7 +244,7 @@ class WorkloadBalancer:
 
             # Find destination candidates
             if (
-                    state["weight"] < w_mean
+                    state["weight"] < w_median
             ):
                 candidates["destination"].update({node: state})
                 destination_count += 1
@@ -245,7 +254,7 @@ class WorkloadBalancer:
 
             # Find source candidates
             if (
-                    state["weight"] > w_mean + w_stdev
+                    state["weight"] > w_median
                     and state['workload_count'] > 1  # nodes with only one workload are not migration source candidates
             ):
                 candidates["source"].update({node: state})
@@ -318,7 +327,8 @@ class WorkloadBalancer:
                     job = Tasks.decode_upid(
                         self.pve.nodes(spec.source)
                         .lxc(spec.vmid)
-                        .migrate.post(target=spec.destination, online=0)
+                        # LXC live migrate is not yet implemented in Proxmox
+                        .migrate.post(target=spec.destination, online=0, restart=1)
                     )
                 case "qemu":
                     job = Tasks.decode_upid(
