@@ -149,31 +149,37 @@ def main():
     )
     parser.add_argument(
         "--exclude-node",
+        metavar="NODE",
         action="append",
         help="Exclude a node (can be specified multiple times)",
     )
     parser.add_argument(
         "--exclude-vmid",
+        metavar="VMID",
         action="append",
         help="Exclude a VMID (can be specified multiple times)",
     )
     parser.add_argument(
         "--exclude-type",
+        metavar="TYPE",
         action="append",
         help="Exclude a workload type ('lxc' or 'qemu'; can be specified multiple times)",
     )
     parser.add_argument(
         "--include-node",
+        metavar="NODE",
         action="append",
         help="Include a previously excluded node (can be specified multiple times)",
     )
     parser.add_argument(
         "--include-vmid",
+        metavar="VMID",
         action="append",
         help="Include a previously excluded VMID (can be specified multiple times)",
     )
     parser.add_argument(
         "--include-type",
+        metavar="TYPE",
         action="append",
         help="Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified multiple times)",
     )
