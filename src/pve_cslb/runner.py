@@ -1,7 +1,7 @@
 #!/usr/Scripts/env python3
 """A 12 Factor style runner for pve-cslb"""
 
-# pve-cslb - a central scheduling load balancer for Proxmox PVE
+# pve-cslb - a configurable central scheduling load balancer for Proxmox PVE
 # Copyright (C) 2024-2025  Travis Wichert
 #
 #  This program is free software: you can redistribute it and/or modify

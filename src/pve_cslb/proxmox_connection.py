@@ -3,7 +3,7 @@ This file provides a wrapper class for connecting to the Proxmox API, supporting
 the available Proxmoxer backends: HTTPS, SSH, and local
 """
 
-# pve-cslb - a central scheduling load balancer for Proxmox PVE
+# pve-cslb - a configurable central scheduling load balancer for Proxmox PVE
 # Copyright (C) 2024-2025  Travis Wichert
 #
 #  This program is free software: you can redistribute it and/or modify
