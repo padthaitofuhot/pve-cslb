@@ -35,9 +35,11 @@ The current workload balancer takes inspiration from, and expands upon, ideas in
 
 ## Requirements
 
-1. A valid Proxmox API endpoint
+1. One of: a usable Proxmox HTTPS API endpoint, ssh access to, or local access to, a Proxmox PVE host with usable
+   `pvesh`
 2. Credentials with read and migrate permissions
-3. An environment capable of running the script
+3. An environment capable of running the script (use `bash scripts/setup-environment.sh` to get one)
+4. Internet access to download required external modules (a list of these is below)
 
 ## Configuration
 
@@ -49,11 +51,10 @@ The default runner follows 12-factor conventions and is configurable from enviro
 
 ```
 $ rye run pve-cslb ---help
-usage: pve-cslb [-h] [-c FILE] [-v] [-q] [--no-color] [--dry-run] [--proxmox-scheme SCHEME]
-                [--proxmox-node NODE] [--proxmox-port PORT] [--proxmox-user USER] [--proxmox-pass PASS]
-                [--proxmox-no-verify-ssl] [--proxmox-ssh-key-file FILE] [--max-migrations NUM] [--tolerance %]
-                [--percent-cpu %] [--percent-mem %] [--exclude-node NODE] [--exclude-vmid VMID]
-                [--exclude-type TYPE] [--include-node NODE] [--include-vmid VMID] [--include-type TYPE]
+usage: pve-cslb [-h] [-c FILE] [-v] [-q] [--no-color] [--dry-run] [--proxmox-scheme SCHEME] [--proxmox-node NODE] [--proxmox-port PORT]
+                [--proxmox-user USER] [--proxmox-pass PASS] [--proxmox-no-verify-ssl] [--proxmox-ssh-key-file FILE] [--max-migrations NUM]
+                [--tolerance %] [--percent-cpu %] [--percent-mem %] [--exclude-node NODE] [--exclude-vmid VMID] [--exclude-type TYPE]
+                [--include-node NODE] [--include-vmid VMID] [--include-type TYPE]
 
 pve-cslb 1.5.0 - A configurable central scheduling load balancer for Proxmox PVE
 
@@ -67,14 +68,14 @@ options:
   --dry-run             Perform read-only analysis; no write actions (default: false)
   --proxmox-scheme SCHEME
                         Proxmox API connection method (https [default], ssh, local)
-  --proxmox-node NODE   Proxmox node (default: localhost)
+  --proxmox-node NODE   Proxmox node to connect to (default: localhost)
   --proxmox-port PORT   Proxmox port (default: 8006)
   --proxmox-user USER   Proxmox user (default: root@pam)
-  --proxmox-pass PASS   Proxmox password (no default)
+  --proxmox-pass PASS   Proxmox password (default: None)
   --proxmox-no-verify-ssl
-                        Do not verify TLS certificate of Proxmox HTTPS API (default: false)
+                        (https scheme only) Do not verify TLS certificate of Proxmox HTTPS API (default: false)
   --proxmox-ssh-key-file FILE
-                        Proxmox SSH key file (default: ~/.ssh/id_rsa)
+                        (ssh scheme only) Proxmox SSH key file (default: ~/.ssh/id_rsa)
   --max-migrations NUM  Max simultaneous migrations to start (default: 5)
   --tolerance %         Max workload disparity tolerance (default: 0.2)
   --percent-cpu %       Percent priority of CPU rule (p-cpu and p-mem must equal 1.0; default: 0.4)
@@ -84,8 +85,7 @@ options:
   --exclude-type TYPE   Exclude a workload type ('lxc' or 'qemu'; can be specified multiple times)
   --include-node NODE   Include a previously excluded node (can be specified multiple times)
   --include-vmid VMID   Include a previously excluded VMID (can be specified multiple times)
-  --include-type TYPE   Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified
-                        multiple times)
+  --include-type TYPE   Include a previously excluded workload type (must be 'lxc' or 'qemu'; can be specified multiple times)
 
 Copyright (C) 2024-2025 Travis Wichert <travis@padthaitofuhot.com>
 ```
@@ -158,4 +158,4 @@ $ rye sync  # <-- without '--no-dev'!
 
 | [![padthaitofuhot](https://github.com/padthaitofuhot.png?size=100)](https://github.com/padthaitofuhot) |
 |--------------------------------------------------------------------------------------------------------|
-| [padthaitofuhot](https://github.com/padthaitofuhot)                                                    |
+| [Travis Wichert](https://github.com/padthaitofuhot)                                                    |
