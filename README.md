@@ -26,7 +26,7 @@ The current workload balancer takes inspiration from, and expands upon, ideas in
 ## From Repo
 
 1. Clone the repo
-2. Run `bash scripts/setup-dev-environment.sh`
+2. Run `bash scripts/setup-environment.sh`
 3. Done.
 
 ---
