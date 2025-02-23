@@ -21,22 +21,18 @@ from argparse import ArgumentParser
 from os import environ
 from re import compile
 from re import match as re_match
-from sys import exit, stdout
+from sys import stdout
 
 from loguru import logger
 from yaml import safe_load, YAMLError
 
-from pve_cslb.config import Config, ConfigurationError
+from pve_cslb.config import Config
 from pve_cslb.workload_balancer import WorkloadBalancer
 
 __version__ = "1.5.0"
 __title__ = "pve-cslb"
-__copyright__ = """
-Copyright (C) 2024-2025 Travis Wichert <travis@padthaitofuhot.com>
-"""
-__description__ = """
-A configurable central scheduling load balancer for Proxmox PVE
-"""
+__copyright__ = "Copyright (C) 2024-2025 Travis Wichert <travis@padthaitofuhot.com>"
+__description__ = "A configurable central scheduling load balancer for Proxmox PVE"
 
 re_pluralize = compile(r"^(include|exclude)_(node|type|vmid)$")
 re_include = compile(r"^include_.*$")
@@ -44,11 +40,11 @@ re_exclude = compile(r"^exclude.*$")
 
 
 @logger.catch(level="ERROR")
-def main():
+def main() -> int:
+    """Main entry point for pve-cslb default runner"""
     #
     # Arg Parsing
     #
-
     parser = ArgumentParser(
         prog="pve-cslb",
         description=f"{__title__} {__version__} - {__description__}",
@@ -92,7 +88,7 @@ def main():
         "--proxmox-node",
         metavar="NODE",
         type=str,
-        help="Proxmox node (default: localhost)",
+        help="Proxmox node to connect to (default: localhost)",
     )
     parser.add_argument(
         "--proxmox-port",
@@ -110,18 +106,18 @@ def main():
         "--proxmox-pass",
         metavar="PASS",
         type=str,
-        help="Proxmox password (no default)",
+        help="Proxmox password (default: None)",
     )
     parser.add_argument(
         "--proxmox-no-verify-ssl",
         action="store_true",
-        help="Do not verify TLS certificate of Proxmox HTTPS API (default: false)",
+        help="(https scheme only) Do not verify TLS certificate of Proxmox HTTPS API (default: false)",
     )
     parser.add_argument(
         "--proxmox-ssh-key-file",
         metavar="FILE",
         type=str,
-        help="Proxmox SSH key file (default: ~/.ssh/id_rsa)",
+        help="(ssh scheme only) Proxmox SSH key file (default: ~/.ssh/id_rsa)",
     )
     parser.add_argument(
         "--max-migrations",
@@ -216,11 +212,8 @@ def main():
     #
     #  Configuration
     #
-    if not args:
-        raise ConfigurationError("Cannot continue, not fully configured.")
-
     lb_config = Config()
-    # setattr(lb_config, "config_file", args["config_file"])
+    logger.info(f"{__title__} {__version__} - {__description__}")
 
     # First read from config file if it exists; CLI args have precedence over ENV
     my_config_file = lb_config.config_file
@@ -246,9 +239,9 @@ def main():
             logger.error(f"CLI: Cannot access config file ({my_config_file}): {exception}")
             raise
         else:
-            logger.debug(f"DEFAULT: Cannot access config file ({my_config_file}): {exception}")
+            logger.debug(f"DEFAULT: Cannot access default config file ({my_config_file}): {exception}")
     except (EOFError, YAMLError) as exception:
-        logger.error(f"Cannot parse config file ({my_config_file})")
+        logger.error(f"Cannot parse config file ({my_config_file}): {exception}")
         raise
 
     # Next configure from CLI and ENV
@@ -285,7 +278,7 @@ def main():
                     tmp_var = None
                 setattr(lb_config, var, tmp_var)
                 logger.debug(
-                    f"ENV: Configured {var} = {'*****' if var == 'proxmox_pass' else tmp_var} (from CSLB_{var.upper()})"
+                    f"ENV: {var} = {'*****' if var == 'proxmox_pass' else tmp_var} (from CSLB_{var.upper()})"
                 )
             del tmp_var
 
@@ -296,7 +289,7 @@ def main():
                     tmp_var = None
                 setattr(lb_config, var, tmp_var)
                 logger.debug(
-                    f"CLI: Configured {var + 's' if re_match(re_pluralize, var) else var} = {'*****' if var == 'proxmox_pass' else tmp_var}"
+                    f"CLI: {var + 's' if re_match(re_pluralize, var) else var} = {'*****' if var == 'proxmox_pass' else tmp_var}"
                 )
 
     # Lists
@@ -318,7 +311,7 @@ def main():
                 new_list = cnf_list + env_list
                 setattr(lb_config, var_s, new_list)
                 logger.debug(
-                    f"ENV: Configured {var_s}: added {env_list} (from CSLB_{var_s.upper()})"
+                    f"ENV: {var_s}: added {env_list} (from CSLB_{var_s.upper()})"
                 )
                 del env_list
                 del cnf_list
@@ -334,7 +327,7 @@ def main():
                     new_list.append(item)
                 setattr(lb_config, ex_var_s, new_list)
                 logger.debug(
-                    f"ENV: Configured {ex_var_s}: removed {env_list} (from CSLB_{var_s.upper()})"
+                    f"ENV: {ex_var_s}: removed {env_list} (from CSLB_{var_s.upper()})"
                 )
                 del env_list
                 del cnf_list
@@ -347,7 +340,7 @@ def main():
                     if item not in cnf_list:
                         new_list = cnf_list + [item]
                         setattr(lb_config, var_s, new_list)
-                        logger.debug(f"CLI: Configured {var_s}: added {item}")
+                        logger.debug(f"CLI: {var_s}: added {item}")
                 del cnf_list
 
             if re_match(re_include, var):
@@ -356,7 +349,7 @@ def main():
                     if item in cnf_list:
                         cnf_list.remove(item)
                         setattr(lb_config, ex_var_s, cnf_list)
-                        logger.debug(f"CLI: Configured {ex_var_s}: removed {item}")
+                        logger.debug(f"CLI: {ex_var_s}: removed {item}")
                 del cnf_list
 
     #
@@ -368,7 +361,7 @@ def main():
 
     if len(migration_candidates) < 1:
         logger.success("No migration candidate(s) found.")
-        exit(0)
+        return 0
 
     if not lb_config.dry_run:
         migrations = list()
@@ -377,11 +370,12 @@ def main():
             migrations.append(jobspec)
         logger.success("Migration job(s) submitted")
 
-        exit(0)
+        return 0
     else:
         logger.success("Dry run; no migration(s) started.")
-        exit(0)
+        return 0
 
 
 if __name__ == "__main__":
-    exit(main())
+    # noinspection PyArgumentList
+    raise SystemExit(main())
