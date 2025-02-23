@@ -29,13 +29,13 @@ from yaml import safe_load, YAMLError
 from pve_cslb.config import Config, ConfigurationError
 from pve_cslb.workload_balancer import WorkloadBalancer
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 __title__ = "pve-cslb"
 __copyright__ = """
 Copyright (C) 2024-2025 Travis Wichert <travis@padthaitofuhot.com>
 """
 __description__ = """
-A workload balancing engine for ProxmoxPVE.  Identifies nodes with imbalanced loads and migrates workloads around to even things out.
+A configurable central scheduling load balancer for Proxmox PVE
 """
 
 re_pluralize = compile(r"^(include|exclude)_(node|type|vmid)$")
