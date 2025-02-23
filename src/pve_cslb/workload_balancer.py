@@ -17,12 +17,13 @@
 from statistics import mean, stdev
 
 from loguru import logger
-from proxmoxer import AuthenticationError, ProxmoxAPI, ResourceException
+from proxmoxer import ResourceException
 from proxmoxer.tools import Tasks
 from requests.exceptions import ConnectionError
 
 from .config import Config
 from .migration_spec import MigrationSpec
+from .proxmox_connection import ProxmoxConnection
 
 logger.disable("WorkloadBalancer")
 
@@ -34,25 +35,12 @@ def mib_round(x: int | float):
 
 
 class WorkloadBalancer:
-    conf = None
-    proxmox = None
+    conf: Config
+    pve: ProxmoxConnection
 
     def __init__(self, conf: Config) -> None:
         self.conf = conf
-        logger.info(
-            f"Using Proxmox API at {self.conf.proxmox_scheme}://{self.conf.proxmox_node}:{self.conf.proxmox_port}"
-        )
-        try:
-            self.pve = ProxmoxAPI(
-                backend=self.conf.proxmox_scheme,
-                host=self.conf.proxmox_node,
-                port=self.conf.proxmox_port,
-                user=self.conf.proxmox_user,
-                password=self.conf.proxmox_pass,
-            )
-        except (ResourceException, ConnectionError, AuthenticationError) as e:
-            logger.error(e)
-            exit(1)
+        self.pve = ProxmoxConnection(conf)
 
     def get_node_state(self, node_name: str, node_status: dict) -> (int, int, float):
         cpu_mhz = float(node_status["cpuinfo"]["mhz"])

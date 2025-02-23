@@ -1,5 +1,5 @@
 #!/usr/Scripts/env python3
-"""Basic runner for pve-cslb"""
+"""A 12 Factor style runner for pve-cslb"""
 
 # pve-cslb - a central scheduling load balancer for Proxmox PVE
 # Copyright (C) 2024-2025  Travis Wichert
@@ -24,7 +24,7 @@ from re import match as re_match
 from sys import exit, stdout
 
 from loguru import logger
-from yaml import safe_load
+from yaml import safe_load, YAMLError
 
 from pve_cslb.config import Config, ConfigurationError
 from pve_cslb.workload_balancer import WorkloadBalancer
@@ -46,7 +46,7 @@ re_exclude = compile(r"^exclude.*$")
 @logger.catch(level="ERROR")
 def main():
     #
-    # Configuration
+    # Arg Parsing
     #
 
     parser = ArgumentParser(
@@ -113,6 +113,17 @@ def main():
         help="Proxmox password (no default)",
     )
     parser.add_argument(
+        "--proxmox-no-verify-ssl",
+        action="store_true",
+        help="Do not verify TLS certificate of Proxmox HTTPS API (default: false)",
+    )
+    parser.add_argument(
+        "--proxmox-ssh-key-file",
+        metavar="FILE",
+        type=str,
+        help="Proxmox SSH key file (default: ~/.ssh/id_rsa)",
+    )
+    parser.add_argument(
         "--max-migrations",
         metavar="NUM",
         type=int,
@@ -168,6 +179,9 @@ def main():
     )
     args = vars(parser.parse_args())
 
+    #
+    # Logging
+    #
     log_level = "INFO"
     if args["verbose"]:
         log_level = "DEBUG"
@@ -181,33 +195,55 @@ def main():
                 "colorize": not args["no_color"],
                 "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>",
                 "level": log_level,
-                # "enqueue": True,
+                "enqueue": True,
             }
         ],
     }
     logger.configure(**logging_config)
     logger.enable("WorkloadBalancer")
     logger.enable("Config")
+    logger.enable("ProxmoxConnection")
+    logger.enable("MigrationSpec")
+    logger.enable("Workload")
+    logger.enable("ProxmoxNode")
 
+    #
+    #  Configuration
+    #
     if not args:
         raise ConfigurationError("Cannot continue, not fully configured.")
 
     lb_config = Config()
-    setattr(lb_config, "config_file", args["config_file"])
+    # setattr(lb_config, "config_file", args["config_file"])
 
-    # First read from config file
+    # First read from config file if it exists; CLI args have precedence over ENV
+    my_config_file = lb_config.config_file
     if "config_file" in args.keys() and args["config_file"]:
+        my_config_file = args["config_file"]
         logger.debug(f"CLI: Configured config_file = {args['config_file']}")
-        try:
-            with open(args["config_file"], "r") as stream:
-                config = safe_load(stream)
-                for k, v in config.items():
-                    setattr(lb_config, k, v)
-                    logger.debug(
-                        f"YML: Configured {k} = {'*****' if k == 'proxmox_pass' else v}"
-                    )
-        except FileNotFoundError:
-            raise ConfigurationError("Config file not found")
+    elif environ.get("CSLB_CONFIG_FILE"):
+        my_config_file = environ.get("CSLB_CONFIG_FILE")
+        logger.debug(f"ENV: Configured config_file = {environ.get('CSLB_CONFIG_FILE')}")
+
+    try:
+        with open(my_config_file, "r") as stream:
+            config = safe_load(stream)
+            for k, v in config.items():
+                setattr(lb_config, k, v)
+                logger.debug(
+                    f"YML: Configured {k} = {'*****' if k == 'proxmox_pass' else v}"
+                )
+        lb_config.config_file = my_config_file
+    except (FileNotFoundError, OSError) as exception:
+        # If default config file is not found, log, but don't abort.
+        if my_config_file != lb_config.config_file:
+            logger.error(f"CLI: Cannot access config file ({my_config_file}): {exception}")
+            raise
+        else:
+            logger.debug(f"DEFAULT: Cannot access config file ({my_config_file}): {exception}")
+    except (EOFError, YAMLError) as exception:
+        logger.error(f"Cannot parse config file ({my_config_file})")
+        raise
 
     # Next configure from CLI and ENV
     # CLI-only vars
@@ -228,6 +264,8 @@ def main():
         "proxmox_port",
         "proxmox_user",
         "proxmox_pass",
+        "proxmox_no_verify_ssl",
+        "proxmox_ssh_key_file",
         "tolerance",
         "percent_cpu",
         "percent_mem",
@@ -235,16 +273,24 @@ def main():
         "dry_run",
     ]:
         if environ.get(f"CSLB_{var.upper()}"):
-            setattr(lb_config, var, environ.get(f"CSLB_{var.upper()}"))
-            logger.debug(
-                f"ENV: Configured {var} = {'*****' if var == 'proxmox_pass' else environ.get(f'CSLB_{var.upper()}')} (from CSLB_{var.upper()})"
-            )
+            tmp_var = environ.get(f"CSLB_{var.upper()}")
+            if tmp_var is not None:
+                if tmp_var == "None":
+                    tmp_var = None
+                setattr(lb_config, var, tmp_var)
+                logger.debug(
+                    f"ENV: Configured {var} = {'*****' if var == 'proxmox_pass' else tmp_var} (from CSLB_{var.upper()})"
+                )
+            del tmp_var
 
         if var in args.keys():
-            if args[var] is not None:
-                setattr(lb_config, var, args[var])
+            tmp_var = args[var]
+            if tmp_var is not None:
+                if tmp_var == "None":
+                    tmp_var = None
+                setattr(lb_config, var, tmp_var)
                 logger.debug(
-                    f"CLI: Configured {var + 's' if re_match(re_pluralize, var) else var} = {'*****' if var == 'proxmox_pass' else args[var]}"
+                    f"CLI: Configured {var + 's' if re_match(re_pluralize, var) else var} = {'*****' if var == 'proxmox_pass' else tmp_var}"
                 )
 
     # Lists
@@ -310,7 +356,7 @@ def main():
     #
     # Main
     #
-
+    # my_proxmox_connection = ProxmoxConnection(lb_config)
     my_cslb = WorkloadBalancer(lb_config)
     migration_candidates = my_cslb.get_migration_candidates()
 

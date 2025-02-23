@@ -18,13 +18,16 @@ This module contains the Config class and helpers.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from os import path
+
 from loguru import logger
 
 logger.disable("Config")
 
 
 class ConfigurationError(Exception):
-    """Custom exception for invalid configuration"""
+    pass
+    """Exception for invalid configuration"""
 
 
 class Config:
@@ -34,8 +37,7 @@ class Config:
     """
 
     # pylint: disable=R0902
-    args: dict = {}
-    config_file: str = "/etc/pve-cslb.conf"
+    config_file: str | None = "/etc/pve-cslb.conf"
     dry_run: bool = False
     verbose: bool = False
     quiet: bool = False
@@ -51,11 +53,9 @@ class Config:
     proxmox_scheme: str = "https"
     proxmox_port: int = 8006
     proxmox_user: str = "root@pam"
-    proxmox_pass: str = ""
-    proxmox_verify_ssl: bool = True
-
-    def __init__(self):
-        pass
+    proxmox_pass: str | None = None
+    _proxmox_ssh_key_file: str | None = "~/.ssh/id_rsa"
+    proxmox_no_verify_ssl: bool = False
 
     @property
     def tolerance(self) -> float:
@@ -88,6 +88,21 @@ class Config:
         """Property setter for _percent_mem"""
         self._percent_mem = float(percent_mem)
         self.balance_resource_weights()
+
+    @property
+    def proxmox_ssh_key_file(self) -> str | None:
+        """Property getter for _proxmox_ssh_key_file"""
+        return self._proxmox_ssh_key_file
+
+    @proxmox_ssh_key_file.setter
+    def proxmox_ssh_key_file(self, ssh_key_file: str | None = None):
+        """Property setter for _proxmox_ssh_key_file"""
+        if ssh_key_file is None:
+            self._proxmox_ssh_key_file = None
+        elif path.isabs(ssh_key_file):
+            self._proxmox_ssh_key_file = ssh_key_file
+        else:
+            self._proxmox_ssh_key_file = path.expanduser(ssh_key_file)
 
     def balance_resource_weights(self):
         """Ensures resource weighting proportions always sum to 1"""
