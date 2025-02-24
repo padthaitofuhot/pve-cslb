@@ -70,12 +70,11 @@ class ProxmoxConnection(ProxmoxAPI):
                     "backend": "local",
                 }
 
-        logger.info(
-            f"Using Proxmox API via {self.config.proxmox_scheme}://{self.config.proxmox_node}"
-        )
         try:
             super().__init__(**kwargs)
-            logger.debug("Proxmox API connection established.")
+            logger.info(
+                f"Proxmox API connected via {self.config.proxmox_scheme}://{self.config.proxmox_node}"
+            )
         except (ResourceException, ConnectionError, AuthenticationError) as exception:
             logger.error(exception)
             raise
