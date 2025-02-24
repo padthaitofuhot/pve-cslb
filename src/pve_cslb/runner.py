@@ -219,10 +219,10 @@ def main() -> int:
     my_config_file = lb_config.config_file
     if "config_file" in args.keys() and args["config_file"]:
         my_config_file = args["config_file"]
-        logger.debug(f"CLI: Configured config_file = {args['config_file']}")
+        logger.debug(f"CLI: config_file = {args['config_file']}")
     elif environ.get("CSLB_CONFIG_FILE"):
         my_config_file = environ.get("CSLB_CONFIG_FILE")
-        logger.debug(f"ENV: Configured config_file = {environ.get('CSLB_CONFIG_FILE')}")
+        logger.debug(f"ENV: config_file = {environ.get('CSLB_CONFIG_FILE')}")
 
     try:
         with open(my_config_file, "r") as stream:
@@ -230,7 +230,7 @@ def main() -> int:
             for k, v in config.items():
                 setattr(lb_config, k, v)
                 logger.debug(
-                    f"YML: Configured {k} = {'*****' if k == 'proxmox_pass' else v}"
+                    f"YML: {k} = {'*****' if k == 'proxmox_pass' else v}"
                 )
         lb_config.config_file = my_config_file
     except (FileNotFoundError, OSError) as exception:
@@ -254,7 +254,7 @@ def main() -> int:
         if var in args.keys():
             if args[var] is not None:
                 setattr(lb_config, var, args[var])
-                logger.debug(f"CLI: Configured {var} = {args[var]}")
+                logger.debug(f"CLI: {var} = {args[var]}")
 
     # Scalars
     for var in [
