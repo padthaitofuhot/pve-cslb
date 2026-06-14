@@ -8,11 +8,14 @@ proxmox_user: root@pam
 proxmox_pass: password
 
 # List of specific Proxmox hosts to ignore
-exclude_nodes: []
+exclude_nodes: [ ]
 # List of vmids to ignore
-exclude_vmids: []
+exclude_vmids: [ ]
 # List of workload types to ignore ("lxc" or "qemu")
-exclude_types: []
+exclude_types: [ ]
+
+# Max workload disparity tolerance
+tolerance: 0.2
 
 # These must add up to 1.0
 percent_cpu: 0.4
