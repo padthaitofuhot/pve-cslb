@@ -232,13 +232,22 @@ class WorkloadBalancer:
         destination_count = 0
 
         for node, state in node_states.items():
-            if state["weight"] < w_mean:
+
+            # Find destination candidates
+            if (
+                    state["weight"] < w_mean
+            ):
                 candidates["destination"].update({node: state})
                 destination_count += 1
                 logger.debug(
                     f"Found destination candidate: {node} (weight: {state['weight']}, workload_count: {state['workload_count']})"
                 )
-            if state["weight"] > w_mean + w_stdev:
+
+            # Find source candidates
+            if (
+                    state["weight"] > w_mean + w_stdev
+                    and state['workload_count'] > 1  # nodes with only one workload are not migration source candidates
+            ):
                 candidates["source"].update({node: state})
                 source_count += 1
                 logger.debug(
